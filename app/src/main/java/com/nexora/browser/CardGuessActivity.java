@@ -30,7 +30,13 @@ public class CardGuessActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle b) {
-        super.onCreate(b);
+        try {
+            super.onCreate(b);
+        } catch (Throwable t) {
+            reportCrash(t);
+            finish();
+            return;
+        }
         try {
             setContentView(R.layout.activity_card_guess);
             bindAll();
