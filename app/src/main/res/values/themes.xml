@@ -12,4 +12,23 @@
         <item name="android:statusBarColor">@android:color/black</item>
         <item name="android:navigationBarColor">@android:color/black</item>
     </style>
+    <style name="SectionHeader">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">#FF8A2BE2</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:layout_marginTop">18dp</item>
+        <item name="android:layout_marginBottom">6dp</item>
+    </style>
+    <style name="NexoraInput">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">#FFFFFFFF</item>
+        <item name="android:textColorHint">#88FFFFFF</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:background">#2200E5FF</item>
+        <item name="android:padding">12dp</item>
+        <item name="android:layout_marginTop">6dp</item>
+    </style>
 </resources>

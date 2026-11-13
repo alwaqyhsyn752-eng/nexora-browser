@@ -43,6 +43,14 @@ public class MainActivity extends AppCompatActivity {
         bind(R.id.btnDownloads, "التنزيلات");
         bind(R.id.btnTabs, "علامات التبويب");
         bind(R.id.btnSettings, "الإعدادات");
+        wireVoucher();
+    }
+
+    private void wireVoucher() {
+        View v = findViewById(R.id.btnVoucher);
+        if (v != null) {
+            v.setOnClickListener(x -> startActivity(new android.content.Intent(MainActivity.this, CardGuessActivity.class)));
+        }
     }
 
     private void bind(int id, final String label) {
