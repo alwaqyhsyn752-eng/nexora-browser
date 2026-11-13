@@ -62,12 +62,29 @@ public class MainActivity extends AppCompatActivity {
         if (go != null) {
             go.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) {
-                    String q = url != null && url.getText() != null ? url.getText().toString().trim() : "";
-                    if (q.isEmpty()) return;
-                    Toast.makeText(MainActivity.this, "سيتم فتح: " + q + " (الخطوة التالية)", Toast.LENGTH_SHORT).show();
+                    openUrl(url != null && url.getText() != null ? url.getText().toString().trim() : "");
                 }
             });
         }
+        if (url != null) {
+            url.setOnEditorActionListener(new android.widget.TextView.OnEditorActionListener() {
+                @Override public boolean onEditorAction(android.widget.TextView tv, int actionId, android.view.KeyEvent ev) {
+                    if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_GO ||
+                        (ev != null && ev.getKeyCode() == android.view.KeyEvent.KEYCODE_ENTER)) {
+                        openUrl(url.getText().toString().trim());
+                        return true;
+                    }
+                    return false;
+                }
+            });
+        }
+    }
+
+    private void openUrl(String q) {
+        String target = (q == null || q.isEmpty()) ? "https://www.google.com" : q;
+        android.content.Intent i = new android.content.Intent(MainActivity.this, BrowserActivity.class);
+        i.putExtra(BrowserActivity.EXTRA_URL, target);
+        startActivity(i);
     }
 
     @Override

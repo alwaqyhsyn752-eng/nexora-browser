@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/nexora_black">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="8dp"
+        android:background="#331E90FF">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_media_previous"
+            android:tint="#FF00E5FF"
+            android:contentDescription="Back"/>
+
+        <ImageButton
+            android:id="@+id/btnForward"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_media_next"
+            android:tint="#FF00E5FF"
+            android:contentDescription="Forward"/>
+
+        <EditText
+            android:id="@+id/urlInput"
+            android:layout_width="0dp"
+            android:layout_height="42dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:background="#55050A20"
+            android:hint="ابحث أو اكتب عنوان URL"
+            android:textColorHint="#8800E5FF"
+            android:textColor="#FFFFFFFF"
+            android:textSize="13sp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:inputType="textUri"
+            android:imeOptions="actionGo"
+            android:singleLine="true"/>
+
+        <ImageButton
+            android:id="@+id/btnReload"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_rotate"
+            android:tint="#FF00E5FF"
+            android:contentDescription="Reload"/>
+
+        <ImageButton
+            android:id="@+id/btnHome"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:tint="#FFFF5577"
+            android:contentDescription="Close"/>
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:progressTint="#FF00E5FF"
+        android:progressBackgroundTint="#00000000"
+        android:visibility="gone"/>
+
+    <WebView
+        android:id="@+id/webView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+</LinearLayout>
