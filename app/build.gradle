@@ -9,7 +9,21 @@ android {
         versionCode 1
         versionName "1.0"
     }
-    buildTypes { release { minifyEnabled false } }
+    signingConfigs {
+        release {
+            storeFile file("${rootDir}/nexora.keystore")
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias System.getenv("KEY_ALIAS") ?: "nexora"
+            keyPassword System.getenv("KEY_PASSWORD") ?: ""
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.release }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17

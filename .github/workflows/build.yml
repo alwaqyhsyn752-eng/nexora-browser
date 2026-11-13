@@ -13,7 +13,14 @@ jobs:
         with: { gradle-version: '8.7' }
       - run: gradle wrapper --gradle-version 8.7
       - run: chmod +x ./gradlew
-      - run: ./gradlew assembleDebug --stacktrace
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > nexora.keystore
+      - name: Build APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: App-APK
