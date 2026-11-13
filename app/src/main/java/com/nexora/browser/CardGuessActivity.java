@@ -44,11 +44,9 @@ public class CardGuessActivity extends AppCompatActivity {
 
     private void reportCrash(Throwable t) {
         StringBuilder sb = new StringBuilder();
-        sb.append(t.toString()).append('
-');
+        sb.append(t.toString()).append((char)10);
         for (StackTraceElement e : t.getStackTrace()) {
-            sb.append(e.toString()).append('
-');
+            sb.append(e.toString()).append((char)10);
             if (sb.length() > 3500) break;
         }
         String msg = sb.toString();
