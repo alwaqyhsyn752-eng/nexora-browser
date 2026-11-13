@@ -31,11 +31,40 @@ public class CardGuessActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
-        setContentView(R.layout.activity_card_guess);
-        bindAll();
-        setupSeekbars();
-        wireButtons();
-        loadPrefs();
+        try {
+            setContentView(R.layout.activity_card_guess);
+            bindAll();
+            setupSeekbars();
+            wireButtons();
+            loadPrefs();
+        } catch (Throwable t) {
+            reportCrash(t);
+        }
+    }
+
+    private void reportCrash(Throwable t) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(t.toString()).append('
+');
+        for (StackTraceElement e : t.getStackTrace()) {
+            sb.append(e.toString()).append('
+');
+            if (sb.length() > 3500) break;
+        }
+        String msg = sb.toString();
+        android.util.Log.e("NEXORA_CRASH", msg, t);
+        try {
+            java.io.File d = getExternalFilesDir(null);
+            if (d != null) {
+                java.io.File f = new java.io.File(d, "crash.txt");
+                java.io.PrintWriter w = new java.io.PrintWriter(f);
+                w.print(msg);
+                w.close();
+            }
+        } catch (Throwable ignore) {}
+        try {
+            android.widget.Toast.makeText(this, "CRASH: " + t.getClass().getSimpleName() + ": " + t.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+        } catch (Throwable ignore) {}
     }
 
     private void bindAll() {
