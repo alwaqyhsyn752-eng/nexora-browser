@@ -1,15 +1,167 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/nexora_black">
+
+    <com.nexora.browser.NexoraHomeView
+        android:id="@+id/homeBg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
     <TextView
+        android:id="@+id/clockText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="NEXORA BROWSER\nBOOTSTRAP OK"
-        android:textColor="@color/nexora_cyan"
-        android:textSize="26sp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="32dp"
+        android:text="00:00:00"
+        android:textColor="#CC00E5FF"
+        android:textSize="28sp"
         android:textStyle="bold"
-        android:gravity="center"/>
+        android:letterSpacing="0.15"/>
+
+    <TextView
+        android:id="@+id/brandText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="76dp"
+        android:text="NEXORA"
+        android:textColor="#FFFFFFFF"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.4"/>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <View
+            android:id="@+id/earthCenter"
+            android:layout_width="1dp"
+            android:layout_height="1dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintVertical_bias="0.45"/>
+
+        <ImageButton
+            android:id="@+id/btnSearch"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/crystal_button"
+            android:src="@android:drawable/ic_menu_search"
+            android:tint="#FFFFFFFF"
+            android:elevation="8dp"
+            android:contentDescription="Search"
+            app:layout_constraintCircle="@id/earthCenter"
+            app:layout_constraintCircleAngle="270"
+            app:layout_constraintCircleRadius="150dp"/>
+
+        <ImageButton
+            android:id="@+id/btnBookmarks"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/crystal_button"
+            android:src="@android:drawable/btn_star_big_on"
+            android:tint="#FFFFFFFF"
+            android:elevation="8dp"
+            android:contentDescription="Bookmarks"
+            app:layout_constraintCircle="@id/earthCenter"
+            app:layout_constraintCircleAngle="330"
+            app:layout_constraintCircleRadius="150dp"/>
+
+        <ImageButton
+            android:id="@+id/btnHistory"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/crystal_button"
+            android:src="@android:drawable/ic_menu_recent_history"
+            android:tint="#FFFFFFFF"
+            android:elevation="8dp"
+            android:contentDescription="History"
+            app:layout_constraintCircle="@id/earthCenter"
+            app:layout_constraintCircleAngle="30"
+            app:layout_constraintCircleRadius="150dp"/>
+
+        <ImageButton
+            android:id="@+id/btnDownloads"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/crystal_button"
+            android:src="@android:drawable/stat_sys_download"
+            android:tint="#FFFFFFFF"
+            android:elevation="8dp"
+            android:contentDescription="Downloads"
+            app:layout_constraintCircle="@id/earthCenter"
+            app:layout_constraintCircleAngle="90"
+            app:layout_constraintCircleRadius="150dp"/>
+
+        <ImageButton
+            android:id="@+id/btnTabs"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/crystal_button"
+            android:src="@android:drawable/ic_menu_sort_by_size"
+            android:tint="#FFFFFFFF"
+            android:elevation="8dp"
+            android:contentDescription="Tabs"
+            app:layout_constraintCircle="@id/earthCenter"
+            app:layout_constraintCircleAngle="150"
+            app:layout_constraintCircleRadius="150dp"/>
+
+        <ImageButton
+            android:id="@+id/btnSettings"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/crystal_button"
+            android:src="@android:drawable/ic_menu_manage"
+            android:tint="#FFFFFFFF"
+            android:elevation="8dp"
+            android:contentDescription="Settings"
+            app:layout_constraintCircle="@id/earthCenter"
+            app:layout_constraintCircleAngle="210"
+            app:layout_constraintCircleRadius="150dp"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="#331E90FF">
+
+        <EditText
+            android:id="@+id/urlInput"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:background="#55050A20"
+            android:hint="ابحث أو أدخل عنوان URL..."
+            android:textColorHint="#8800E5FF"
+            android:textColor="#FFFFFFFF"
+            android:textSize="14sp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:inputType="textUri"
+            android:imeOptions="actionGo"/>
+
+        <ImageButton
+            android:id="@+id/btnGo"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/crystal_button"
+            android:src="@android:drawable/ic_media_play"
+            android:tint="#FFFFFFFF"
+            android:elevation="8dp"
+            android:contentDescription="Go"/>
+
+    </LinearLayout>
+
 </FrameLayout>

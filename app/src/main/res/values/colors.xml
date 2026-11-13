@@ -3,4 +3,6 @@
     <color name="nexora_purple">#8A2BE2</color>
     <color name="nexora_cyan">#00E5FF</color>
     <color name="nexora_black">#050014</color>
+    <color name="nexora_deep">#0A0020</color>
+    <color name="nexora_glass">#331E90FF</color>
 </resources>
