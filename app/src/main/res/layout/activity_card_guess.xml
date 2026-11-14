@@ -113,6 +113,11 @@
                     android:backgroundTint="#FF8A2BE2" android:textColor="#FFFFFFFF" android:textStyle="bold"/>
             </LinearLayout>
 
+            <Button android:id="@+id/btnShowCurrent"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="10dp" android:text="عرض الكرت المسجل حالياً"
+                android:backgroundTint="#FF00C853" android:textColor="#FF000000" android:textStyle="bold"/>
+
             <Button android:id="@+id/btnOpenRouter"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="10dp" android:text="فتح صفحة الشبكة (للتسجيل الخروج)"

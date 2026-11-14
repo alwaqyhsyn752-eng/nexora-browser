@@ -17,7 +17,7 @@ public class CardGuessActivity extends AppCompatActivity {
     private SeekBar seekWait, seekParallel;
     private TextView lblWait, lblParallel;
     private CheckBox cbRelax;
-    private Button btnStart, btnStop, btnClear, btnStopBig, btnBack, btnOpenRouter;
+    private Button btnStart, btnStop, btnClear, btnStopBig, btnBack, btnOpenRouter, btnShowCurrent;
     private ScrollView formScroll;
     private LinearLayout blackPanel;
     private TextView currentCardBig, statusLine, foundDisplay;
@@ -60,6 +60,7 @@ public class CardGuessActivity extends AppCompatActivity {
         btnStopBig = findViewById(R.id.btnStopBig);
         btnBack = findViewById(R.id.btnBack);
         btnOpenRouter = findViewById(R.id.btnOpenRouter);
+        btnShowCurrent = findViewById(R.id.btnShowCurrent);
     }
 
     private void setupSeekbars() {
@@ -87,6 +88,7 @@ public class CardGuessActivity extends AppCompatActivity {
         btnStopBig.setOnClickListener(v -> stopGuessing());
         btnBack.setOnClickListener(v -> stopGuessing());
         btnClear.setOnClickListener(v -> confirmClear());
+        if (btnShowCurrent != null) btnShowCurrent.setOnClickListener(v -> showCurrentVoucher());
         if (btnOpenRouter != null) btnOpenRouter.setOnClickListener(v -> {
             String url = val(etNetUrl);
             if (url.isEmpty()) { toast("أدخل رابط الشبكة أولاً"); return; }
@@ -163,6 +165,31 @@ public class CardGuessActivity extends AppCompatActivity {
             .setMessage("مسح كل الأرقام المحفوظة للشبكة: " + fnet + "؟")
             .setPositiveButton("امسح", (d, w) -> { new GuessDatabase(this, fnet).clearAll(); toast("تم المسح"); })
             .setNegativeButton("إلغاء", null).show();
+    }
+
+    private void showCurrentVoucher() {
+        String url = val(etNetUrl);
+        if (url.isEmpty()) { toast("أدخل رابط الشبكة أولاً"); return; }
+        toast("جاري القراءة...");
+        final String u = url;
+        new Thread(() -> {
+            String v = MikrotikFinder.fetchCurrentVoucher(u);
+            runOnUiThread(() -> {
+                if (v != null) {
+                    new android.app.AlertDialog.Builder(CardGuessActivity.this)
+                        .setTitle("الكرت الحالي في صفحة الحالة")
+                        .setMessage("الكرت: " + v)
+                        .setPositiveButton("نسخ", (d, w) -> {
+                            android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                            cm.setPrimaryClip(android.content.ClipData.newPlainText("voucher", v));
+                            toast("تم النسخ");
+                        })
+                        .setNegativeButton("إغلاق", null).show();
+                } else {
+                    toast("لا يوجد كرت مسجل حالياً (الراوتر يخفيه)");
+                }
+            });
+        }).start();
     }
 
     @Override protected void onDestroy() { if (finder != null) finder.stop(); super.onDestroy(); }
