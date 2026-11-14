@@ -8,7 +8,6 @@
         android:id="@+id/formScroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -23,67 +22,102 @@
                 android:textSize="20sp"
                 android:textStyle="bold"
                 android:gravity="center"
-                android:letterSpacing="0.1"
-                android:layout_marginBottom="12dp"/>
+                android:paddingBottom="12dp"/>
 
-            <TextView style="@style/SectionHeader" android:text="الشبكة (Network)"/>
-            <EditText android:id="@+id/etNetUrl" style="@style/NexoraInput"
-                android:hint="عنوان URL (http://7.7.7.7/)" android:inputType="textUri"/>
-            <EditText android:id="@+id/etNetName" style="@style/NexoraInput"
-                android:hint="اسم الشبكة (مثال: hala)" android:inputType="text"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="— الشبكة —" android:textColor="#FF8A2BE2" android:textSize="13sp"
+                android:textStyle="bold" android:paddingTop="6dp"/>
 
-            <TextView style="@style/SectionHeader" android:text="بيانات الكرت (Card Data)"/>
-            <EditText android:id="@+id/etCardStart" style="@style/NexoraInput"
-                android:hint="البداية (مثال: 530495)" android:inputType="text"/>
-            <EditText android:id="@+id/etCardMiddle" style="@style/NexoraInput"
-                android:hint="الوسط الثابت (اتركه فارغاً إن لم يوجد)" android:inputType="text"/>
-            <EditText android:id="@+id/etCardEnd" style="@style/NexoraInput"
-                android:hint="النهاية (مثال: 32)" android:inputType="text"/>
-            <EditText android:id="@+id/etCardVarDigits" style="@style/NexoraInput"
-                android:hint="عدد الأرقام المتغيرة" android:inputType="number" android:text="1"/>
-            <EditText android:id="@+id/etCardConverters" style="@style/NexoraInput"
-                android:hint="عدد المحاولات (100000)" android:inputType="number" android:text="100000"/>
+            <EditText android:id="@+id/etNetUrl"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="http://7.7.7.7/" android:inputType="textUri"
+                android:textColor="#FFFFFFFF" android:textColorHint="#88FFFFFF"
+                android:background="#2200E5FF" android:padding="10dp" android:layout_marginTop="4dp"/>
 
-            <TextView style="@style/SectionHeader" android:text="السرعة (Speed)"/>
+            <EditText android:id="@+id/etNetName"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="اسم الشبكة (hala)" android:inputType="text"
+                android:textColor="#FFFFFFFF" android:textColorHint="#88FFFFFF"
+                android:background="#2200E5FF" android:padding="10dp" android:layout_marginTop="4dp"/>
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="— بيانات الكرت —" android:textColor="#FF8A2BE2" android:textSize="13sp"
+                android:textStyle="bold" android:paddingTop="12dp"/>
+
+            <EditText android:id="@+id/etCardStart"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="البداية (530495)" android:inputType="text"
+                android:textColor="#FFFFFFFF" android:textColorHint="#88FFFFFF"
+                android:background="#2200E5FF" android:padding="10dp" android:layout_marginTop="4dp"/>
+
+            <EditText android:id="@+id/etCardMiddle"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="الوسط الثابت (اتركه فارغاً إن لم يوجد)" android:inputType="text"
+                android:textColor="#FFFFFFFF" android:textColorHint="#88FFFFFF"
+                android:background="#2200E5FF" android:padding="10dp" android:layout_marginTop="4dp"/>
+
+            <EditText android:id="@+id/etCardEnd"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="النهاية (32)" android:inputType="text"
+                android:textColor="#FFFFFFFF" android:textColorHint="#88FFFFFF"
+                android:background="#2200E5FF" android:padding="10dp" android:layout_marginTop="4dp"/>
+
+            <EditText android:id="@+id/etCardVarDigits"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="عدد الأرقام المتغيرة" android:inputType="number" android:text="1"
+                android:textColor="#FFFFFFFF" android:textColorHint="#88FFFFFF"
+                android:background="#2200E5FF" android:padding="10dp" android:layout_marginTop="4dp"/>
+
+            <EditText android:id="@+id/etCardConverters"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="عدد المحاولات" android:inputType="number" android:text="100000"
+                android:textColor="#FFFFFFFF" android:textColorHint="#88FFFFFF"
+                android:background="#2200E5FF" android:padding="10dp" android:layout_marginTop="4dp"/>
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="— السرعة —" android:textColor="#FF8A2BE2" android:textSize="13sp"
+                android:textStyle="bold" android:paddingTop="12dp"/>
 
             <TextView android:id="@+id/lblWait"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="الانتظار: 0.5 ثانية" android:textColor="#CC00E5FF" android:textSize="14sp"/>
+                android:text="الانتظار: 0.5 ثانية" android:textColor="#FF00E5FF" android:textSize="13sp"
+                android:paddingTop="6dp"/>
             <SeekBar android:id="@+id/seekWait"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:max="20" android:progress="5"
-                android:progressTint="#FF00E5FF" android:thumbTint="#FF8A2BE2"/>
+                android:max="20" android:progress="5" android:progressTint="#FF00E5FF"/>
 
             <TextView android:id="@+id/lblParallel"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="التوازي (عمال): 3" android:textColor="#CC00E5FF" android:textSize="14sp"
-                android:layout_marginTop="8dp"/>
+                android:text="التوازي: 3" android:textColor="#FF00E5FF" android:textSize="13sp"
+                android:paddingTop="6dp"/>
             <SeekBar android:id="@+id/seekParallel"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:max="10" android:progress="3"
-                android:progressTint="#FF00E5FF" android:thumbTint="#FF8A2BE2"/>
+                android:max="10" android:progress="3" android:progressTint="#FF00E5FF"/>
 
             <CheckBox android:id="@+id/cbRelax"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="وضع الاسترخاء (أبطأ وأأمن)"
-                android:textColor="#CC00E5FF" android:layout_marginTop="4dp"/>
+                android:text="وضع الاسترخاء" android:textColor="#FF00E5FF" android:layout_marginTop="8dp"/>
 
-            <LinearLayout
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:layout_marginTop="20dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="14dp">
                 <Button android:id="@+id/btnStart"
-                    android:layout_width="0dp" android:layout_height="wrap_content"
-                    android:layout_weight="1" android:text="بدء المحاولات"
-                    android:backgroundTint="#FF00E5FF" android:textColor="#FF000000" android:textStyle="bold"/>
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="بدء" android:backgroundTint="#FF00E5FF" android:textColor="#FF000000" android:textStyle="bold"/>
                 <Button android:id="@+id/btnStop"
-                    android:layout_width="0dp" android:layout_height="wrap_content"
-                    android:layout_weight="1" android:layout_marginStart="6dp" android:text="إيقاف"
-                    android:enabled="false" android:backgroundTint="#FFFF5577" android:textColor="#FFFFFFFF" android:textStyle="bold"/>
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:layout_marginStart="6dp" android:text="إيقاف" android:enabled="false"
+                    android:backgroundTint="#FFFF5577" android:textColor="#FFFFFFFF" android:textStyle="bold"/>
                 <Button android:id="@+id/btnClear"
-                    android:layout_width="0dp" android:layout_height="wrap_content"
-                    android:layout_weight="1" android:layout_marginStart="6dp" android:text="مسح"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:layout_marginStart="6dp" android:text="مسح"
                     android:backgroundTint="#FF8A2BE2" android:textColor="#FFFFFFFF" android:textStyle="bold"/>
             </LinearLayout>
+
+            <Button android:id="@+id/btnOpenRouter"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="10dp" android:text="فتح صفحة الشبكة (للتسجيل الخروج)"
+                android:backgroundTint="#3333CCFF" android:textColor="#FFFFFFFF"/>
+
         </LinearLayout>
     </ScrollView>
 
@@ -93,16 +127,13 @@
         android:orientation="vertical" android:gravity="center" android:padding="24dp"
         android:background="#FF000000" android:visibility="gone">
 
-        <TextView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:text="الكـرت الحالي" android:textColor="#6688EEFF"
-            android:textSize="12sp" android:gravity="center" android:letterSpacing="0.3"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="الكـرت الحالي" android:textColor="#6688EEFF" android:textSize="12sp" android:letterSpacing="0.3"/>
 
         <TextView android:id="@+id/currentCardBig"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:text="---" android:textColor="#FF00E5FF" android:textSize="42sp"
-            android:textStyle="bold" android:gravity="center"
-            android:fontFamily="monospace" android:letterSpacing="0.1"
+            android:text="---" android:textColor="#FF00E5FF" android:textSize="40sp"
+            android:textStyle="bold" android:gravity="center" android:fontFamily="monospace"
             android:layout_marginTop="8dp"/>
 
         <TextView android:id="@+id/statusLine"
@@ -112,17 +143,17 @@
 
         <TextView android:id="@+id/foundDisplay"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:text="لم يتم العثور على كرت بعد" android:textColor="#FFFFAA00"
+            android:text="لم يُعثر على كرت بعد" android:textColor="#FFFFAA00"
             android:textSize="18sp" android:gravity="center" android:layout_marginTop="32dp"/>
 
         <Button android:id="@+id/btnStopBig"
-            android:layout_width="220dp" android:layout_height="wrap_content"
-            android:layout_marginTop="48dp" android:text="إيقاف التخمين"
+            android:layout_width="240dp" android:layout_height="wrap_content"
+            android:layout_marginTop="40dp" android:text="إيقاف التخمين"
             android:backgroundTint="#FFFF5577" android:textColor="#FFFFFFFF" android:textStyle="bold"/>
 
         <Button android:id="@+id/btnBack"
-            android:layout_width="220dp" android:layout_height="wrap_content"
-            android:layout_marginTop="12dp" android:text="رجوع"
+            android:layout_width="240dp" android:layout_height="wrap_content"
+            android:layout_marginTop="10dp" android:text="رجوع"
             android:backgroundTint="#FF8A2BE2" android:textColor="#FFFFFFFF" android:textStyle="bold"/>
     </LinearLayout>
 </FrameLayout>
