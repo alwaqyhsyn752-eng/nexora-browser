@@ -235,7 +235,6 @@ public class CardGuessActivity extends AppCompatActivity {
         } catch (Exception e) { toast("خطأ: " + e.getMessage()); }
     }
 
-    private android.os.PowerManager.WakeLock wakeLock;
 
     private void acquireWakeLock() {
         try {
