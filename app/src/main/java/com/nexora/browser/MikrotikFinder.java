@@ -436,4 +436,34 @@ public class MikrotikFinder {
             }
         }
     }
+
+    public static String fetchCurrentVoucher(String baseUrl) {
+        HttpURLConnection c = null;
+        try {
+            String b = baseUrl.replaceAll("(?i)/ilogin", "/login").replaceAll("[#?].*", "");
+            if (b.endsWith("/")) b = b.substring(0, b.length()-1);
+            c = (HttpURLConnection) new URL(b + "/status?var=callBack").openConnection();
+            c.setConnectTimeout(5000); c.setReadTimeout(5000);
+            c.setRequestProperty("User-Agent", "Mozilla/5.0");
+            c.setRequestProperty("X-Requested-With", "XMLHttpRequest");
+            int code = c.getResponseCode();
+            if (code < 200 || code >= 300) { c.disconnect(); return null; }
+            StringBuilder sb = new StringBuilder();
+            java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(c.getInputStream(), "UTF-8"));
+            String line;
+            while ((line = br.readLine()) != null) { sb.append(line); if (sb.length() > 20000) break; }
+            br.close(); c.disconnect(); c = null;
+            String s = sb.toString();
+            try {
+                org.json.JSONObject o = new org.json.JSONObject(s);
+                String u = o.optString("username", "").trim();
+                if (!u.isEmpty() && !u.equals("-") && !u.equals("N/A")) return u;
+            } catch (Exception ignore) {}
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"username\"\\s*:\\s*\"([^\"]+)\"").matcher(s);
+            if (m.find()) return m.group(1);
+            return null;
+        } catch (Exception e) {
+            return null;
+        } finally { if (c != null) c.disconnect(); }
+    }
 }
