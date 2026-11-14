@@ -92,7 +92,7 @@
                 android:paddingTop="6dp"/>
             <SeekBar android:id="@+id/seekParallel"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:max="1" android:progress="1" android:progressTint="#FF00E5FF"/>
+                android:max="10" android:progress="3" android:progressTint="#FF00E5FF"/>
 
             <CheckBox android:id="@+id/cbRelax"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"

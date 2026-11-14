@@ -21,7 +21,7 @@ public class CardGuessActivity extends AppCompatActivity {
     private ScrollView formScroll;
     private LinearLayout blackPanel;
     private TextView currentCardBig, statusLine, foundDisplay;
-    private int waitMs = 500, parallel = 1;
+    private int waitMs = 500, parallel = 3;
     private MikrotikFinder finder;
     private GuessDatabase db;
 
