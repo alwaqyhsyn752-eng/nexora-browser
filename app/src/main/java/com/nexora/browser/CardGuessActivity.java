@@ -1,6 +1,14 @@
 package com.nexora.browser;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.DhcpInfo;
+import android.net.wifi.WifiManager;
+import android.os.Build;
+import android.os.PowerManager;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -22,6 +30,10 @@ public class CardGuessActivity extends AppCompatActivity {
     private LinearLayout blackPanel;
     private TextView currentCardBig, statusLine, foundDisplay;
     private int waitMs = 500, parallel = 3;
+    private PowerManager.WakeLock wakeLock;
+    private static final String PREFS = "nexora_prefs";
+    private static final int NOTIF_ID = 3001;
+    private static final String CHANNEL_ID = "nexora_guess";
     private MikrotikFinder finder;
     private GuessDatabase db;
 
@@ -29,7 +41,7 @@ public class CardGuessActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         try {
             setContentView(R.layout.activity_card_guess);
-            bind(); setupSeekbars(); wire();
+            bind(); setupSeekbars(); wire(); loadPrefs();
         } catch (Throwable t) {
             Toast.makeText(this, "CRASH: " + t, Toast.LENGTH_LONG).show();
             finish();
@@ -88,6 +100,8 @@ public class CardGuessActivity extends AppCompatActivity {
         btnStopBig.setOnClickListener(v -> stopGuessing());
         btnBack.setOnClickListener(v -> stopGuessing());
         btnClear.setOnClickListener(v -> confirmClear());
+        android.widget.Button btnDetect = findViewById(R.id.btnDetect);
+        if (btnDetect != null) btnDetect.setOnClickListener(v -> autoDetectNetwork());
         if (btnShowCurrent != null) btnShowCurrent.setOnClickListener(v -> showCurrentVoucher());
         if (btnOpenRouter != null) btnOpenRouter.setOnClickListener(v -> {
             String url = val(etNetUrl);
@@ -111,8 +125,12 @@ public class CardGuessActivity extends AppCompatActivity {
                     waitMs, parallel, cbRelax.isChecked(), db);
         } catch (Exception e) { toast("خطأ: " + e.getMessage()); return; }
 
+        savePrefs();
+        acquireWakeLock();
         formScroll.setVisibility(ScrollView.GONE);
         blackPanel.setVisibility(LinearLayout.VISIBLE);
+        foundDisplay.setBackgroundColor(0x00000000);
+        foundDisplay.setTextColor(0xFFFFAA00);
         currentCardBig.setText("...");
         statusLine.setText("المحاولات: 0");
         foundDisplay.setText("لم يُعثر على كرت بعد");
@@ -122,9 +140,14 @@ public class CardGuessActivity extends AppCompatActivity {
         finder.start(new MikrotikFinder.Listener() {
             @Override public void onProgress(long attempts, String current) {
                 statusLine.setText("المحاولات: " + attempts);
-                if (current != null) currentCardBig.setText(current);
+                String cur = currentCardBig.getText().toString();
+                if (cur.equals("---") || cur.equals("...")) {
+                    if (current != null) currentCardBig.setText(current);
+                }
             }
             @Override public void onCardFound(String card, String details) {
+                foundDisplay.setBackgroundColor(0xFF00C853);
+                foundDisplay.setTextColor(0xFF000000);
                 StringBuilder sb = new StringBuilder("✅ " + card);
                 if (details != null) {
                     try {
@@ -151,6 +174,7 @@ public class CardGuessActivity extends AppCompatActivity {
 
     private void stopGuessing() {
         if (finder != null) finder.stop();
+        releaseWakeLock();
         formScroll.setVisibility(ScrollView.VISIBLE);
         blackPanel.setVisibility(LinearLayout.GONE);
         btnStart.setEnabled(true);
@@ -196,4 +220,70 @@ public class CardGuessActivity extends AppCompatActivity {
     private String val(EditText e) { return e.getText() == null ? "" : e.getText().toString().trim(); }
     private int parseInt(String s, int def) { try { return Integer.parseInt(s); } catch (Exception e) { return def; } }
     private void toast(String m) { Toast.makeText(this, m, Toast.LENGTH_SHORT).show(); }
+
+    private void autoDetectNetwork() {
+        try {
+            android.net.wifi.WifiManager wm = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+            if (wm == null) { toast("WiFi غير متاح"); return; }
+            android.net.DhcpInfo dhcp = wm.getDhcpInfo();
+            if (dhcp == null || dhcp.gateway == 0) { toast("لم يتم اكتشاف الشبكة"); return; }
+            int ip = dhcp.gateway;
+            String url = String.format("http://%d.%d.%d.%d",
+                (ip & 0xff), (ip >> 8 & 0xff), (ip >> 16 & 0xff), (ip >> 24 & 0xff));
+            etNetUrl.setText(url);
+            toast("تم اكتشاف: " + url);
+        } catch (Exception e) { toast("خطأ: " + e.getMessage()); }
+    }
+
+    private android.os.PowerManager.WakeLock wakeLock;
+
+    private void acquireWakeLock() {
+        try {
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+            if (pm == null || wakeLock != null) return;
+            wakeLock = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "NEXORA::Guess");
+            wakeLock.acquire(60 * 60 * 1000L);
+        } catch (Throwable t) {}
+    }
+
+    private void releaseWakeLock() {
+        try { if (wakeLock != null && wakeLock.isHeld()) wakeLock.release(); } catch (Throwable t) {}
+        wakeLock = null;
+    }
+
+    private void loadPrefs() {
+        android.content.SharedPreferences p = getSharedPreferences("nexora_prefs", MODE_PRIVATE);
+        etNetUrl.setText(p.getString("url", ""));
+        etNetName.setText(p.getString("name", ""));
+        etCardStart.setText(p.getString("start", ""));
+        etCardMiddle.setText(p.getString("middle", ""));
+        etCardEnd.setText(p.getString("end", ""));
+        etCardVarDigits.setText(String.valueOf(p.getInt("varDigits", 1)));
+        etCardConverters.setText(String.valueOf(p.getInt("maxAttempts", 100000)));
+        waitMs = p.getInt("waitMs", 500);
+        parallel = p.getInt("parallel", 3);
+        cbRelax.setChecked(p.getBoolean("relax", false));
+        seekWait.setProgress(waitMs / 100);
+        seekParallel.setProgress(parallel);
+        lblWait.setText("الانتظار: " + (waitMs / 1000f) + " ثانية");
+        lblParallel.setText("التوازي: " + parallel);
+    }
+
+    private void savePrefs() {
+        android.content.SharedPreferences p = getSharedPreferences("nexora_prefs", MODE_PRIVATE);
+        p.edit()
+            .putString("url", val(etNetUrl))
+            .putString("name", val(etNetName))
+            .putString("start", val(etCardStart))
+            .putString("middle", val(etCardMiddle))
+            .putString("end", val(etCardEnd))
+            .putInt("varDigits", parseInt(val(etCardVarDigits), 1))
+            .putInt("maxAttempts", parseInt(val(etCardConverters), 100000))
+            .putInt("waitMs", waitMs)
+            .putInt("parallel", parallel)
+            .putBoolean("relax", cbRelax.isChecked())
+            .apply();
+    }
+
+    @Override protected void onPause() { savePrefs(); super.onPause(); }
 }

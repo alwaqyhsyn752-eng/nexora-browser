@@ -299,13 +299,13 @@ public class MikrotikFinder {
     }
 
     private String generateVoucher() {
-        int max = (int) Math.pow(10, varDigits);
+        long max = (long) Math.pow(10, Math.min(varDigits, 12));
         for (int i = 0; i < 50; i++) {
-            int num = (int)(Math.random() * max);
+            long num = (long)(Math.random() * max);
             String v = prefix + pad(num, varDigits) + middle + suffix;
             if (!db.exists(v)) { db.addAttempt(v); return v; }
         }
-        for (int num = 0; num < max; num++) {
+        for (long num = 0; num < max; num++) {
             String v = prefix + pad(num, varDigits) + middle + suffix;
             if (!db.exists(v)) { db.addAttempt(v); return v; }
         }
@@ -399,7 +399,7 @@ public class MikrotikFinder {
         return s.replaceAll("^[._-]+|[._-]+$", "");
     }
 
-    private static String pad(int n, int digits) {
+    private static String pad(long n, int digits) {
         StringBuilder sb = new StringBuilder(String.valueOf(n));
         while (sb.length() < digits) sb.insert(0, '0');
         return sb.toString();

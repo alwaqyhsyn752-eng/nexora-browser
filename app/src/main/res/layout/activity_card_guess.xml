@@ -28,11 +28,18 @@
                 android:text="— الشبكة —" android:textColor="#FF8A2BE2" android:textSize="13sp"
                 android:textStyle="bold" android:paddingTop="6dp"/>
 
-            <EditText android:id="@+id/etNetUrl"
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:hint="http://7.7.7.7/" android:inputType="textUri"
-                android:textColor="#FFFFFFFF" android:textColorHint="#88FFFFFF"
-                android:background="#2200E5FF" android:padding="10dp" android:layout_marginTop="4dp"/>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="4dp">
+                <EditText android:id="@+id/etNetUrl"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:hint="http://7.7.7.7/" android:inputType="textUri"
+                    android:textColor="#FFFFFFFF" android:textColorHint="#88FFFFFF"
+                    android:background="#2200E5FF" android:padding="10dp"/>
+                <Button android:id="@+id/btnDetect"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp" android:text="Auto"
+                    android:backgroundTint="#FF00C853" android:textColor="#FF000000" android:textStyle="bold"/>
+            </LinearLayout>
 
             <EditText android:id="@+id/etNetName"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
