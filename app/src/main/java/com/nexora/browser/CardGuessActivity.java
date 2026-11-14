@@ -21,7 +21,7 @@ public class CardGuessActivity extends AppCompatActivity {
     private ScrollView formScroll;
     private LinearLayout blackPanel;
     private TextView currentCardBig, statusLine, foundDisplay;
-    private int waitMs = 500, parallel = 3;
+    private int waitMs = 500, parallel = 1;
     private MikrotikFinder finder;
     private GuessDatabase db;
 
@@ -123,9 +123,18 @@ public class CardGuessActivity extends AppCompatActivity {
                 if (current != null) currentCardBig.setText(current);
             }
             @Override public void onCardFound(String card, String details) {
-                foundDisplay.setText("✅ وجد: " + card);
+                StringBuilder sb = new StringBuilder("✅ " + card);
+                if (details != null) {
+                    try {
+                        org.json.JSONObject o = new org.json.JSONObject(details);
+                        sb.append("\nIP: ").append(o.optString("ip", "-"));
+                        sb.append("\nUptime: ").append(o.optString("uptime", "-"));
+                        sb.append("\nLeft: ").append(o.optString("session_time_left", "-"));
+                    } catch (Exception e) {}
+                }
+                foundDisplay.setText(sb.toString());
                 currentCardBig.setText(card);
-                Toast.makeText(CardGuessActivity.this, "وجدت الكرت: " + card, Toast.LENGTH_LONG).show();
+                Toast.makeText(CardGuessActivity.this, "وجدت: " + card, Toast.LENGTH_LONG).show();
             }
             @Override public void onError(String msg) {
                 statusLine.setText("خطأ: " + msg);
