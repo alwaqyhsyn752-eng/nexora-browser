@@ -125,6 +125,22 @@
                 android:layout_marginTop="10dp" android:text="عرض الكرت المسجل حالياً"
                 android:backgroundTint="#FF00C853" android:textColor="#FF000000" android:textStyle="bold"/>
 
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="10dp">
+                <Button android:id="@+id/btnViewSuccess"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="📁 الناجحة" android:textSize="11sp"
+                    android:backgroundTint="#FF00C853" android:textColor="#FF000000" android:textStyle="bold"/>
+                <Button android:id="@+id/btnViewExpired"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:layout_marginStart="4dp" android:text="📁 المنتهية" android:textSize="11sp"
+                    android:backgroundTint="#FFFF9800" android:textColor="#FF000000" android:textStyle="bold"/>
+                <Button android:id="@+id/btnViewNoResponse"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:layout_marginStart="4dp" android:text="📁 لا رد" android:textSize="11sp"
+                    android:backgroundTint="#FF9E9E9E" android:textColor="#FF000000" android:textStyle="bold"/>
+            </LinearLayout>
+
             <Button android:id="@+id/btnOpenRouter"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="10dp" android:text="فتح صفحة الشبكة (للتسجيل الخروج)"
