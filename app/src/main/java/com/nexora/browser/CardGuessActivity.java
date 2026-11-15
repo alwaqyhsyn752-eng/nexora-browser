@@ -172,6 +172,12 @@ public class CardGuessActivity extends AppCompatActivity {
             @Override public void onFinished(boolean found) {
                 btnStart.setEnabled(true);
                 btnStop.setEnabled(false);
+                if (found) {
+                    statusLine.setText("✅ توقف — تم إيجاد " + candidateList.size() + " كرت");
+                    foundDisplay.setTextColor(0xFF00C853);
+                } else {
+                    statusLine.setText("⏹ توقف — لم يُعثر على كرت");
+                }
             }
         });
     }

@@ -231,7 +231,8 @@ public class MikrotikFinder {
                 if (listener != null) uiHandler.post(() -> listener.onCardFound(v, j));
             }
             currentVoucher = user;
-            return true;  // إيقاف فوري بمجرد إيجاد الكرت
+            running.set(false);  // إيقاف فوري لكل العمال
+            return true;
         }
         return false;
     }
