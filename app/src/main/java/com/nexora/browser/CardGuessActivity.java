@@ -140,9 +140,8 @@ public class CardGuessActivity extends AppCompatActivity {
         finder.start(new MikrotikFinder.Listener() {
             @Override public void onProgress(long attempts, String current) {
                 statusLine.setText("المحاولات: " + attempts);
-                String cur = currentCardBig.getText().toString();
-                if (cur.equals("---") || cur.equals("...")) {
-                    if (current != null) currentCardBig.setText(current);
+                if (current != null && !current.isEmpty()) {
+                    currentCardBig.setText(current); // تحديث الرقم دائماً
                 }
             }
             @Override public void onCardFound(String card, String details) {
@@ -234,8 +233,8 @@ public class CardGuessActivity extends AppCompatActivity {
         new Thread(() -> {
             String detectedUrl = null;
             try {
-                // 🌐 طلب إلى جوجل لاعتراض البوابة (Captive Portal)
-                java.net.URL url = new java.net.URL("http://connectivitycheck.gstatic.com/generate_204");
+                // طلب لموقع خارجي لاعتراض البوابة
+                java.net.URL url = new java.net.URL("http://neverssl.com");
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
                 conn.setInstanceFollowRedirects(false);
                 conn.setConnectTimeout(5000);
@@ -244,15 +243,11 @@ public class CardGuessActivity extends AppCompatActivity {
                 
                 if (code == 302 || code == 301 || code == 511) {
                     String loc = conn.getHeaderField("Location");
-                    if (loc != null && !loc.isEmpty()) {
-                        detectedUrl = loc;
-                    }
+                    if (loc != null && !loc.isEmpty()) detectedUrl = loc;
                 }
-            } catch (Exception e) {
-                // تجاهل الخطأ
-            }
+            } catch (Exception e) {}
 
-            // إذا لم ينجح الاعتراض، استخدم IP البوابة كخطة بديلة
+            // إذا لم يعترض الراوتر (لأنك متصل بالفعل)، استخدم IP البوابة
             if (detectedUrl == null) {
                 try {
                     android.net.wifi.WifiManager wm = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
@@ -260,8 +255,8 @@ public class CardGuessActivity extends AppCompatActivity {
                         android.net.DhcpInfo dhcp = wm.getDhcpInfo();
                         if (dhcp != null && dhcp.gateway != 0) {
                             int ip = dhcp.gateway;
-                            detectedUrl = String.format(java.util.Locale.US, "http://%d.%d.%d.%d", 
-                                (ip & 0xff), (ip >> 8 & 0xff), (ip >> 16 & 0xff), (ip >> 24 & 0xff));
+                            String ipStr = String.format(java.util.Locale.US, "%d.%d.%d.%d", (ip & 0xff), (ip >> 8 & 0xff), (ip >> 16 & 0xff), (ip >> 24 & 0xff));
+                            detectedUrl = "http://" + ipStr + "/login"; // إضافة /login لصفحة الدخول
                         }
                     }
                 } catch (Exception e) {}
