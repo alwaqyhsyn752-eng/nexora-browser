@@ -71,7 +71,7 @@ public class MikrotikFinder {
         this.prefix = prefix == null ? "" : prefix;
         this.middle = middle == null ? "" : middle;
         this.suffix = suffix == null ? "" : suffix;
-        this.varDigits = Math.max(1, Math.min(6, varDigits));
+        this.varDigits = Math.max(1, Math.min(12, varDigits));
         this.maxAttempts = Math.max(1, maxAttempts);
         this.waitMs = Math.max(50, waitMs);
         this.parallel = Math.max(1, Math.min(10, parallel));
@@ -192,7 +192,7 @@ public class MikrotikFinder {
             }
         }
 
-        long[] checks = {150, 200, 250, 300, 400, 500};
+        long[] checks = {150, 150, 200, 300};
         for (long d : checks) {
             try { Thread.sleep(d); } catch (InterruptedException e) { return false; }
             if (!running.get()) return false;

@@ -218,7 +218,15 @@ public class CardGuessActivity extends AppCompatActivity {
 
     @Override protected void onDestroy() { if (finder != null) finder.stop(); super.onDestroy(); }
     private String val(EditText e) { return e.getText() == null ? "" : e.getText().toString().trim(); }
-    private int parseInt(String s, int def) { try { return Integer.parseInt(s); } catch (Exception e) { return def; } }
+    private int parseInt(String s, int def) {
+        if (s == null) return def;
+        StringBuilder sb = new StringBuilder();
+        for (char c : s.toCharArray()) {
+            if (c >= '\u0660' && c <= '\u0669') sb.append((char)('0' + (c - '\u0660')));
+            else sb.append(c);
+        }
+        try { return Integer.parseInt(sb.toString().trim()); } catch (Exception e) { return def; }
+    }
     private void toast(String m) { Toast.makeText(this, m, Toast.LENGTH_SHORT).show(); }
 
     private void autoDetectNetwork() {
@@ -228,7 +236,7 @@ public class CardGuessActivity extends AppCompatActivity {
             android.net.DhcpInfo dhcp = wm.getDhcpInfo();
             if (dhcp == null || dhcp.gateway == 0) { toast("لم يتم اكتشاف الشبكة"); return; }
             int ip = dhcp.gateway;
-            String url = String.format("http://%d.%d.%d.%d",
+            String url = String.format(java.util.Locale.US, "http://%d.%d.%d.%d",
                 (ip & 0xff), (ip >> 8 & 0xff), (ip >> 16 & 0xff), (ip >> 24 & 0xff));
             etNetUrl.setText(url);
             toast("تم اكتشاف: " + url);
