@@ -39,6 +39,7 @@ public class MikrotikFinder {
     private final GuessDatabase db;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private final java.util.Set<String> triedInSession = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
     private final AtomicLong totalAttempts = new AtomicLong(0);
     private volatile String currentVoucher;
     private volatile String foundVoucher;
@@ -82,6 +83,7 @@ public class MikrotikFinder {
         if (running.get()) return;
         this.listener = l;
         running.set(true);
+        triedInSession.clear();
         finishedOnce = false;
         foundVoucher = null;
         lastStatusJson = null;
@@ -311,14 +313,20 @@ public class MikrotikFinder {
 
     private String generateVoucher() {
         long max = (long) Math.pow(10, Math.min(varDigits, 12));
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 100; i++) {
             long num = (long)(Math.random() * max);
             String v = prefix + pad(num, varDigits) + middle + suffix;
-            if (!db.exists(v)) { db.addAttempt(v); return v; }
+            if (triedInSession.add(v)) {
+                db.addAttempt(v);
+                return v;
+            }
         }
         for (long num = 0; num < max; num++) {
             String v = prefix + pad(num, varDigits) + middle + suffix;
-            if (!db.exists(v)) { db.addAttempt(v); return v; }
+            if (triedInSession.add(v)) {
+                db.addAttempt(v);
+                return v;
+            }
         }
         return null;
     }
