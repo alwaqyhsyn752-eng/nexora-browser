@@ -230,17 +230,53 @@ public class CardGuessActivity extends AppCompatActivity {
     private void toast(String m) { Toast.makeText(this, m, Toast.LENGTH_SHORT).show(); }
 
     private void autoDetectNetwork() {
-        try {
-            android.net.wifi.WifiManager wm = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
-            if (wm == null) { toast("WiFi غير متاح"); return; }
-            android.net.DhcpInfo dhcp = wm.getDhcpInfo();
-            if (dhcp == null || dhcp.gateway == 0) { toast("لم يتم اكتشاف الشبكة"); return; }
-            int ip = dhcp.gateway;
-            String url = String.format(java.util.Locale.US, "http://%d.%d.%d.%d",
-                (ip & 0xff), (ip >> 8 & 0xff), (ip >> 16 & 0xff), (ip >> 24 & 0xff));
-            etNetUrl.setText(url);
-            toast("تم اكتشاف: " + url);
-        } catch (Exception e) { toast("خطأ: " + e.getMessage()); }
+        toast("جاري اكتشاف بوابة الدخول...");
+        new Thread(() -> {
+            String detectedUrl = null;
+            try {
+                // 🌐 طلب إلى جوجل لاعتراض البوابة (Captive Portal)
+                java.net.URL url = new java.net.URL("http://connectivitycheck.gstatic.com/generate_204");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setInstanceFollowRedirects(false);
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+                int code = conn.getResponseCode();
+                
+                if (code == 302 || code == 301 || code == 511) {
+                    String loc = conn.getHeaderField("Location");
+                    if (loc != null && !loc.isEmpty()) {
+                        detectedUrl = loc;
+                    }
+                }
+            } catch (Exception e) {
+                // تجاهل الخطأ
+            }
+
+            // إذا لم ينجح الاعتراض، استخدم IP البوابة كخطة بديلة
+            if (detectedUrl == null) {
+                try {
+                    android.net.wifi.WifiManager wm = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+                    if (wm != null) {
+                        android.net.DhcpInfo dhcp = wm.getDhcpInfo();
+                        if (dhcp != null && dhcp.gateway != 0) {
+                            int ip = dhcp.gateway;
+                            detectedUrl = String.format(java.util.Locale.US, "http://%d.%d.%d.%d", 
+                                (ip & 0xff), (ip >> 8 & 0xff), (ip >> 16 & 0xff), (ip >> 24 & 0xff));
+                        }
+                    }
+                } catch (Exception e) {}
+            }
+            
+            final String finalUrl = detectedUrl;
+            runOnUiThread(() -> {
+                if (finalUrl != null) {
+                    etNetUrl.setText(finalUrl);
+                    toast("تم اكتشاف: " + finalUrl);
+                } else {
+                    toast("لم يتم اكتشاف البوابة. أدخل الرابط يدوياً");
+                }
+            });
+        }).start();
     }
 
 
