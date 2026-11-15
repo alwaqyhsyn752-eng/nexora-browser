@@ -242,6 +242,13 @@ public class MikrotikFinder {
     }
 
     private String readRealUsername(WorkerSession s) {
+        // البحث في الكوكيز أولاً
+        for (String key : new String[]{"username", "st_username", "user", "login"}) {
+            if (s.cookies.containsKey(key)) {
+                String val = s.cookies.get(key);
+                if (val != null && !val.isEmpty() && !val.equals("-")) return val;
+            }
+        }
         try {
             String[] urls = { base + "/status", base + "/", base + "/status?var=callBack" };
             for (String u : urls) {
@@ -487,29 +494,52 @@ public class MikrotikFinder {
         try {
             String b = baseUrl.replaceAll("(?i)/ilogin", "/login").replaceAll("[#?].*", "");
             if (b.endsWith("/")) b = b.substring(0, b.length()-1);
+            WorkerSession s = new WorkerSession();
+            
+            // 1. زيارة الصفحة الرئيسية لأخذ الكوكيز
+            c = (HttpURLConnection) new URL(b + "/").openConnection();
+            c.setConnectTimeout(5000); c.setReadTimeout(5000);
+            c.setRequestProperty("User-Agent", s.userAgent);
+            s.applyCookies(c);
+            c.getResponseCode();
+            s.captureCookies(c);
+            c.disconnect();
+            
+            // 2. قراءة الحالة مع الكوكيز
             c = (HttpURLConnection) new URL(b + "/status?var=callBack").openConnection();
             c.setConnectTimeout(5000); c.setReadTimeout(5000);
-            c.setRequestProperty("User-Agent", "Mozilla/5.0");
+            c.setRequestProperty("User-Agent", s.userAgent);
             c.setRequestProperty("X-Requested-With", "XMLHttpRequest");
+            s.applyCookies(c);
             int code = c.getResponseCode();
             if (code < 200 || code >= 300) { c.disconnect(); return null; }
             StringBuilder sb = new StringBuilder();
-            BufferedReader br = new BufferedReader(new InputStreamReader(c.getInputStream(), "UTF-8"));
+            java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(c.getInputStream(), "UTF-8"));
             String line;
             while ((line = br.readLine()) != null) { sb.append(line); if (sb.length() > 20000) break; }
             br.close(); c.disconnect(); c = null;
-            String s = sb.toString();
+            String json = sb.toString();
+            
+            // 3. البحث في JSON
             try {
-                JSONObject o = new JSONObject(s);
+                org.json.JSONObject o = new org.json.JSONObject(json);
                 String u = o.optString("username", "").trim();
                 if (!u.isEmpty() && !u.equals("-") && !u.equals("N/A")) return u;
             } catch (Exception ignore) {}
-            Matcher m = Pattern.compile("\"username\"\\s*:\\s*\"([^\"]+)\"").matcher(s);
+            
+            // 4. البحث في HTML
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"username\"\s*:\s*\"([^\"]+)\"").matcher(json);
             if (m.find()) return m.group(1);
-            m = Pattern.compile("name=[\"']username[\"'][^>]*value=[\"']([^\"']+)[\"']").matcher(s);
+            m = java.util.regex.Pattern.compile("name=[\"']username[\"'][^>]*value=[\"']([^\"']+)[\"']").matcher(json);
             if (m.find()) return m.group(1);
-            m = Pattern.compile("<td[^>]*>\\s*[Uu]sername\\s*</td>\\s*<td[^>]*>\\s*([^<\\s]+)").matcher(s);
-            if (m.find()) return m.group(1);
+            
+            // 5. البحث في الكوكيز
+            for (String key : new String[]{"username", "st_username", "user", "login"}) {
+                if (s.cookies.containsKey(key)) {
+                    String val = s.cookies.get(key);
+                    if (val != null && !val.isEmpty() && !val.equals("-")) return val;
+                }
+            }
             return null;
         } catch (Exception e) {
             return null;
