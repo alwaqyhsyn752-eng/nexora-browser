@@ -35,6 +35,7 @@ public class CardGuessActivity extends AppCompatActivity {
     private static final int NOTIF_ID = 3001;
     private static final String CHANNEL_ID = "nexora_guess";
     private MikrotikFinder finder;
+    private final java.util.List<String> candidateList = new java.util.ArrayList<>();
     private GuessDatabase db;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -131,6 +132,7 @@ public class CardGuessActivity extends AppCompatActivity {
         blackPanel.setVisibility(LinearLayout.VISIBLE);
         foundDisplay.setBackgroundColor(0x00000000);
         foundDisplay.setTextColor(0xFFFFAA00);
+        candidateList.clear();
         currentCardBig.setText("...");
         statusLine.setText("المحاولات: 0");
         foundDisplay.setText("لم يُعثر على كرت بعد");
@@ -147,18 +149,21 @@ public class CardGuessActivity extends AppCompatActivity {
             @Override public void onCardFound(String card, String details) {
                 foundDisplay.setBackgroundColor(0xFF00C853);
                 foundDisplay.setTextColor(0xFF000000);
-                StringBuilder sb = new StringBuilder("✅ " + card);
+                if (!candidateList.contains(card)) candidateList.add(card);
+                StringBuilder sb = new StringBuilder("✅ المرشحون (" + candidateList.size() + "):");
+                for (String c : candidateList) sb.append("\n  ").append(c);
                 if (details != null) {
                     try {
                         org.json.JSONObject o = new org.json.JSONObject(details);
-                        sb.append("\nIP: ").append(o.optString("ip", "-"));
+                        sb.append("\n\nIP: ").append(o.optString("ip", "-"));
                         sb.append("\nUptime: ").append(o.optString("uptime", "-"));
                         sb.append("\nLeft: ").append(o.optString("session_time_left", "-"));
                     } catch (Exception e) {}
                 }
+                sb.append("\n\n💡 جرّب كل رقم يدوياً لمعرفة الصحيح");
                 foundDisplay.setText(sb.toString());
                 currentCardBig.setText(card);
-                Toast.makeText(CardGuessActivity.this, "وجدت: " + card, Toast.LENGTH_LONG).show();
+                Toast.makeText(CardGuessActivity.this, "وجدت: " + card, Toast.LENGTH_SHORT).show();
             }
             @Override public void onError(String msg) {
                 statusLine.setText("خطأ: " + msg);

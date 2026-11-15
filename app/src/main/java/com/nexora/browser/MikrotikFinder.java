@@ -41,6 +41,9 @@ public class MikrotikFinder {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final java.util.Set<String> triedInSession = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
     private final AtomicLong totalAttempts = new AtomicLong(0);
+    private final java.util.List<String> candidates = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+    private final java.util.Map<String, String> candidateDetails = new java.util.concurrent.ConcurrentHashMap<>();
+    private volatile long firstCandidateTime = 0;
     private volatile String currentVoucher;
     private volatile String foundVoucher;
     private volatile Map<String, String> formTemplate = new HashMap<>();
@@ -212,9 +215,25 @@ public class MikrotikFinder {
             }
 
             lastStatusJson = afterJson;
-            db.addFound(user, afterJson);
+            boolean isNew = false;
+            synchronized (candidates) {
+                if (!candidates.contains(user)) {
+                    candidates.add(user);
+                    candidateDetails.put(user, afterJson);
+                    db.addFound(user, afterJson);
+                    if (firstCandidateTime == 0) firstCandidateTime = System.currentTimeMillis();
+                    isNew = true;
+                }
+            }
+            if (isNew) {
+                final String v = user;
+                final String j = afterJson;
+                if (listener != null) uiHandler.post(() -> listener.onCardFound(v, j));
+            }
             currentVoucher = user;
-            return true;
+            long elapsed = System.currentTimeMillis() - firstCandidateTime;
+            if (elapsed > 5000 || candidates.size() >= 10) return true;
+            return false;
         }
         return false;
     }
@@ -465,6 +484,9 @@ public class MikrotikFinder {
             }
         }
     }
+
+    public java.util.List<String> getCandidates() { return new java.util.ArrayList<>(candidates); }
+    public String getCandidateDetails(String card) { return candidateDetails.get(card); }
 
     public static String fetchCurrentVoucher(String baseUrl) {
         HttpURLConnection c = null;
