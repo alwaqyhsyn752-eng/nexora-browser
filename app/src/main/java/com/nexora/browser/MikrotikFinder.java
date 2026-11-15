@@ -495,7 +495,7 @@ public class MikrotikFinder {
         try {
             String b = baseUrl.replaceAll("(?i)/ilogin", "/login").replaceAll("[#?].*", "");
             if (b.endsWith("/")) b = b.substring(0, b.length()-1);
-            WorkerSession s = new WorkerSession();
+            WorkerSession s = new WorkerSession(0);
             
             // 1. زيارة الصفحة الرئيسية لأخذ الكوكيز
             c = (HttpURLConnection) new URL(b + "/").openConnection();
