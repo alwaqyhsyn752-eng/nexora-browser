@@ -112,6 +112,13 @@ public class MikrotikFinder {
             String initJson = httpGet(base + STATUS_PATH, probe, 5000);
             if (statusActive(initJson)) {
                 String u = getStr(initJson, "username");
+                // 🔍 محاولة قراءة الاسم من HTML إذا لم يوجد في JSON
+                if (u == null || u.isEmpty() || u.equals("-") || u.equals("N/A")) {
+                    u = readRealUsername(probe);
+                    if (u != null && !u.isEmpty() && !u.equals("-") && !u.equals("N/A")) {
+                        Log.d("NEXORA", "got username from HTML: " + u);
+                    }
+                }
                 if (u != null && !u.isEmpty() && !u.equals("-") && !u.equals("N/A")) {
                     lastStatusJson = initJson;
                     running.set(false);
@@ -123,7 +130,15 @@ public class MikrotikFinder {
                     }
                     return;
                 }
-                Log.w("NEXORA", "active session but username hidden");
+                // ⚠️ جلسة موجودة لكن الاسم مخفي تماماً
+                Log.w("NEXORA", "active session but username hidden everywhere");
+                running.set(false);
+                if (listener != null) {
+                    uiHandler.post(() -> listener.onError(
+                        "جلسة نشطة موجودة لكن الراوتر يخفي اسم الكرت. اضغط (فتح صفحة الشبكة) للتسجيل الخروج أولاً."));
+                    uiHandler.post(() -> listener.onFinished(false));
+                }
+                return;
             }
 
             emitProgress("بدء المحاولات...");
@@ -490,6 +505,10 @@ public class MikrotikFinder {
                 if (!u.isEmpty() && !u.equals("-") && !u.equals("N/A")) return u;
             } catch (Exception ignore) {}
             Matcher m = Pattern.compile("\"username\"\\s*:\\s*\"([^\"]+)\"").matcher(s);
+            if (m.find()) return m.group(1);
+            m = Pattern.compile("name=[\"']username[\"'][^>]*value=[\"']([^\"']+)[\"']").matcher(s);
+            if (m.find()) return m.group(1);
+            m = Pattern.compile("<td[^>]*>\\s*[Uu]sername\\s*</td>\\s*<td[^>]*>\\s*([^<\\s]+)").matcher(s);
             if (m.find()) return m.group(1);
             return null;
         } catch (Exception e) {
