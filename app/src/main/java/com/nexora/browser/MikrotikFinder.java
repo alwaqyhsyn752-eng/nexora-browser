@@ -197,13 +197,7 @@ public class MikrotikFinder {
             boolean signal = false;
             if (user != null && !user.isEmpty() && !user.equals("-") && user.equals(voucher)) signal = true;
             
-            if (nowActive && beforeUptime > 30 && nowUptime >= 0 && nowUptime <= FRESH_UPTIME_SECONDS) {
-                // 🛡️ منع الكرت الخاطئ: إذا كان رد الراوتر يحتوي على index.html فهذا يعني أن الكرت خاطئ
-                if (postResp != null && postResp.contains("index.html")) {
-                    return false;
-                }
-                signal = true;
-            }
+            if (nowActive && beforeUptime > 30 && nowUptime >= 0 && nowUptime <= FRESH_UPTIME_SECONDS) signal = true;
             if (nowActive && !beforeActive) signal = true;
 
             if (!signal) { emitProgress(""); continue; }
