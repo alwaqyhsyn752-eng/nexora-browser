@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GuessDatabase extends SQLiteOpenHelper {
-    private static final int VERSION = 2;
+    private static final int VERSION = 3;
 
     public GuessDatabase(Context c, String network) {
         super(c, "nexora_guess_" + safe(network) + ".db", null, VERSION);
@@ -21,8 +21,9 @@ public class GuessDatabase extends SQLiteOpenHelper {
 
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE IF NOT EXISTS attempted (" +
-            "number TEXT PRIMARY KEY, status TEXT DEFAULT 'pending', " +
+            "number TEXT PRIMARY KEY, var_part TEXT, status TEXT DEFAULT 'pending', " +
             "data TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_var ON attempted(var_part)");
         db.execSQL("CREATE TABLE IF NOT EXISTS found (" +
             "number TEXT PRIMARY KEY, data TEXT, " +
             "ts DATETIME DEFAULT CURRENT_TIMESTAMP)");
@@ -31,6 +32,10 @@ public class GuessDatabase extends SQLiteOpenHelper {
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int o, int n) {
+        if (o < 3) {
+            try { db.execSQL("ALTER TABLE attempted ADD COLUMN var_part TEXT"); } catch (Exception e) {}
+            try { db.execSQL("CREATE INDEX IF NOT EXISTS idx_var ON attempted(var_part)"); } catch (Exception e) {}
+        }
         if (o < 2) {
             try { db.execSQL("ALTER TABLE attempted ADD COLUMN status TEXT DEFAULT 'pending'"); } catch (Exception e) {}
             try { db.execSQL("ALTER TABLE attempted ADD COLUMN data TEXT"); } catch (Exception e) {}
@@ -60,6 +65,16 @@ public class GuessDatabase extends SQLiteOpenHelper {
     }
 
     // === Attempts ===
+    public boolean existsVarPart(String varPart) {
+        try {
+            Cursor c = getReadableDatabase().rawQuery(
+                "SELECT 1 FROM attempted WHERE var_part=? LIMIT 1", new String[]{varPart});
+            boolean r = c.moveToFirst();
+            c.close();
+            return r;
+        } catch (Exception e) { return false; }
+    }
+
     public boolean exists(String v) {
         Cursor c = getReadableDatabase().rawQuery(
             "SELECT 1 FROM attempted WHERE number=? LIMIT 1", new String[]{v});
@@ -73,10 +88,21 @@ public class GuessDatabase extends SQLiteOpenHelper {
     }
 
     public void addAttemptWithStatus(String v, String status, String data) {
+        String varPart = null;
+        try {
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("^(.*?)(\\d+)$").matcher(v);
+            if (m.matches()) varPart = v.substring(0, v.length() - m.group(2).length()) + m.group(2);
+            // varPart = v بدون اللاحقة الأخيرة (تساوي الجزء من بداية الرقم حتى نهاية المتغيرة)
+        } catch (Exception e) {}
+        addAttemptFull(v, varPart, status, data);
+    }
+
+    public void addAttemptFull(String v, String varPart, String status, String data) {
         try {
             getWritableDatabase().execSQL(
-                "INSERT OR REPLACE INTO attempted(number,status,data) VALUES (?,?,?)",
-                new Object[]{v, status, data});
+                "INSERT OR REPLACE INTO attempted(number,var_part,status,data) VALUES (?,?,?,?)",
+                new Object[]{v, varPart, status, data});
         } catch (Exception e) {}
     }
 

