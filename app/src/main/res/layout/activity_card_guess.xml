@@ -59,7 +59,7 @@
 
             <EditText android:id="@+id/etCardMiddle"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:hint="الوسط الثابت (اتركه فارغاً إن لم يوجد)" android:inputType="text"
+                android:hint="الوسط الثابت — سيظهر في منتصف الأرقام المتغيرة" android:inputType="text"
                 android:textColor="#FFFFFFFF" android:textColorHint="#88FFFFFF"
                 android:background="#2200E5FF" android:padding="10dp" android:layout_marginTop="4dp"/>
 
@@ -80,6 +80,14 @@
                 android:hint="عدد المحاولات" android:inputType="number" android:text="100000"
                 android:textColor="#FFFFFFFF" android:textColorHint="#88FFFFFF"
                 android:background="#2200E5FF" android:padding="10dp" android:layout_marginTop="4dp"/>
+
+            <EditText android:id="@+id/etCustomSequences"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="أرقام مخصصة (سطر لكل رقم) — اختياري"
+                android:inputType="textMultiLine" android:minLines="2"
+                android:gravity="top|start"
+                android:textColor="#FFFFFFFF" android:textColorHint="#88FFFFFF"
+                android:background="#2200E5FF" android:padding="10dp" android:layout_marginTop="8dp"/>
 
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="— السرعة —" android:textColor="#FF8A2BE2" android:textSize="13sp"

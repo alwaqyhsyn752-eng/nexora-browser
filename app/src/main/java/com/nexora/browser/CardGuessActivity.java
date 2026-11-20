@@ -21,7 +21,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class CardGuessActivity extends AppCompatActivity {
-    private EditText etNetUrl, etNetName, etCardStart, etCardMiddle, etCardEnd, etCardVarDigits, etCardConverters;
+    private EditText etNetUrl, etNetName, etCardStart, etCardMiddle, etCardEnd, etCardVarDigits, etCardConverters, etCustomSequences;
     private SeekBar seekWait, seekParallel;
     private TextView lblWait, lblParallel;
     private CheckBox cbRelax;
@@ -57,6 +57,7 @@ public class CardGuessActivity extends AppCompatActivity {
         etCardEnd = findViewById(R.id.etCardEnd);
         etCardVarDigits = findViewById(R.id.etCardVarDigits);
         etCardConverters = findViewById(R.id.etCardConverters);
+        etCustomSequences = findViewById(R.id.etCustomSequences);
         seekWait = findViewById(R.id.seekWait);
         seekParallel = findViewById(R.id.seekParallel);
         lblWait = findViewById(R.id.lblWait);
@@ -124,12 +125,23 @@ public class CardGuessActivity extends AppCompatActivity {
         if (url.isEmpty()) { toast("أدخل رابط الشبكة"); return; }
         String net = val(etNetName); if (net.isEmpty()) net = "default";
         db = new GuessDatabase(this, net);
+        java.util.List<String> customSeqs = new java.util.ArrayList<>();
+        try {
+            if (etCustomSequences != null && etCustomSequences.getText() != null) {
+                for (String line : etCustomSequences.getText().toString().split("\n")) {
+                    line = line.trim();
+                    if (!line.isEmpty()) customSeqs.add(line);
+                }
+            }
+        } catch (Exception e) {}
+        
         try {
             finder = new MikrotikFinder(url, net,
                     val(etCardStart), val(etCardMiddle), val(etCardEnd),
                     parseInt(val(etCardVarDigits), 1),
                     parseInt(val(etCardConverters), 100000),
-                    waitMs, parallel, cbRelax.isChecked(), db);
+                    waitMs, parallel, cbRelax.isChecked(), db,
+                    customSeqs);
         } catch (Exception e) { toast("خطأ: " + e.getMessage()); return; }
 
         savePrefs();
@@ -338,6 +350,9 @@ public class CardGuessActivity extends AppCompatActivity {
         etCardEnd.setText(p.getString("end", ""));
         etCardVarDigits.setText(String.valueOf(p.getInt("varDigits", 1)));
         etCardConverters.setText(String.valueOf(p.getInt("maxAttempts", 100000)));
+        if (etCustomSequences != null) {
+            etCustomSequences.setText(p.getString("customSeqs", ""));
+        }
         waitMs = p.getInt("waitMs", 500);
         parallel = p.getInt("parallel", 3);
         cbRelax.setChecked(p.getBoolean("relax", false));
@@ -357,6 +372,7 @@ public class CardGuessActivity extends AppCompatActivity {
             .putString("end", val(etCardEnd))
             .putInt("varDigits", parseInt(val(etCardVarDigits), 1))
             .putInt("maxAttempts", parseInt(val(etCardConverters), 100000))
+            .putString("customSeqs", etCustomSequences != null ? etCustomSequences.getText().toString() : "")
             .putInt("waitMs", waitMs)
             .putInt("parallel", parallel)
             .putBoolean("relax", cbRelax.isChecked())

