@@ -413,21 +413,17 @@ public class MikrotikFinder {
     private String generateVoucher() {
         // 🎯 1. الأرقام المخصصة أولاً
         if (customSequences != null && customIndex < customSequences.size()) {
-            String seq = customSequences.get(customIndex++);
-            // إذا كان الطول لا يطابق، نعدل
-            if (seq.length() < varDigits) {
-                StringBuilder sb = new StringBuilder(seq);
-                while (sb.length() < varDigits) sb.append('0');
-                seq = sb.toString();
-            } else if (seq.length() > varDigits) {
-                seq = seq.substring(0, varDigits);
+            String original = customSequences.get(customIndex++);
+            String seq = original;
+            // لا نُعدّل الطول — إذا كان مختلفاً، نُظهر تحذير (في CardGuessActivity)
+            if (seq.length() != varDigits) {
+                Log.w("NEXORA", "الأرقام المخصصة '" + original + "' طولها " + seq.length() + " لكن varDigits = " + varDigits);
+                // نستخدم الرقم كما هو
             }
             String v = buildVoucherWithVar(seq);
-            if (!triedInSession.contains(seq)) {
-                triedInSession.add(seq);
-                db.addAttemptWithStatus(v, "pending", null);
-                return v;
-            }
+            triedInSession.add(seq);
+            db.addAttemptWithStatus(v, "pending", null);
+            return v;
         }
         
         // 🧠 2. الأنماط الذكية
