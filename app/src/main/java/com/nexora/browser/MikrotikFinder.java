@@ -378,38 +378,17 @@ public class MikrotikFinder {
 
     private String generateVoucher() {
         int base = allowedDigits.length();
-        
-        // 🎯 إذا كانت الأرقام مسموحة محدودة (مثل 12345)، عدّد منهجياً
         long total = 1;
         for (int i = 0; i < varDigits; i++) {
             total *= base;
             if (total > 100000000L) { total = 100000000L; break; }
         }
         
-        // إذا كانت الأرقام المسموحة محدودة (أقل من 10) → تعداد منهجي كامل
-        if (base < 10) {
-            for (int attempt = 0; attempt < 300; attempt++) {
-                long idx = counter.getAndIncrement();
-                if (idx >= total) return null;
-                
-                char[] seq = new char[varDigits];
-                long n = idx;
-                for (int i = varDigits - 1; i >= 0; i--) {
-                    seq[i] = allowedDigits.charAt((int)(n % base));
-                    n /= base;
-                }
-                String seqStr = new String(seq);
-                if (triedInSession.contains(seqStr)) continue;
-                triedInSession.add(seqStr);
-                String v = buildVoucherWithVar(seqStr);
-                db.addAttemptWithStatus(v, "pending", null);
-                return v;
-            }
-            return null;
-        }
+        // إذا استُنفدت كل الاحتمالات
+        if (triedInSession.size() >= total) return null;
         
-        // عشوائي من الأحرف المسموحة (جميع الأرقام 0-9)
-        for (int attempt = 0; attempt < 500; attempt++) {
+        // 🎲 عشوائي من الأرقام المسموحة فقط
+        for (int attempt = 0; attempt < 1000; attempt++) {
             StringBuilder sb = new StringBuilder();
             for (int j = 0; j < varDigits; j++) {
                 sb.append(allowedDigits.charAt((int)(Math.random() * base)));
@@ -421,6 +400,7 @@ public class MikrotikFinder {
             db.addAttemptWithStatus(v, "pending", null);
             return v;
         }
+        
         return null;
     }
 
