@@ -390,4 +390,48 @@ public class CardGuessActivity extends AppCompatActivity {
     }
 
     @Override protected void onPause() { savePrefs(); super.onPause(); }
+
+    // ========== دوال Keep-Alive والإشعارات ==========
+    private void startKeepAliveService() {
+        Intent serviceIntent = new Intent(this, KeepAliveService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
+        }
+    }
+
+    private void stopKeepAliveService() {
+        Intent serviceIntent = new Intent(this, KeepAliveService.class);
+        stopService(serviceIntent);
+    }
+
+    private void showFoundNotification(String card) {
+        String channelId = "nexora_found";
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel ch = new NotificationChannel(
+                channelId, "Found Cards", NotificationManager.IMPORTANCE_HIGH);
+            nm.createNotificationChannel(ch);
+        }
+        Notification n;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            n = new Notification.Builder(this, channelId)
+                .setContentTitle("تم العثور على بطاقة!")
+                .setContentText("البطاقة: " + card)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setAutoCancel(true)
+                .build();
+        } else {
+            n = new Notification.Builder(this)
+                .setContentTitle("تم العثور على بطاقة!")
+                .setContentText("البطاقة: " + card)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setAutoCancel(true)
+                .build();
+        }
+        nm.notify(1001, n);
+    }
+    // ===============================================
+
 }
