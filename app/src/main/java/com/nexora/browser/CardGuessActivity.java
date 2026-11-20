@@ -156,7 +156,7 @@ public class CardGuessActivity extends AppCompatActivity {
         } catch (Exception e) { toast("خطأ: " + e.getMessage()); return; }
 
         savePrefs();
-        acquireWakeLock();
+        startKeepAliveService();
         formScroll.setVisibility(ScrollView.GONE);
         blackPanel.setVisibility(LinearLayout.VISIBLE);
         foundDisplay.setBackgroundColor(0x00000000);
@@ -193,6 +193,7 @@ public class CardGuessActivity extends AppCompatActivity {
                 foundDisplay.setText(sb.toString());
                 currentCardBig.setText(card);
                 Toast.makeText(CardGuessActivity.this, "وجدت: " + card, Toast.LENGTH_SHORT).show();
+                showFoundNotification(card);
             }
             @Override public void onError(String msg) {
                 statusLine.setText("خطأ: " + msg);
@@ -213,7 +214,7 @@ public class CardGuessActivity extends AppCompatActivity {
 
     private void stopGuessing() {
         if (finder != null) finder.stop();
-        releaseWakeLock();
+        stopKeepAliveService();
         formScroll.setVisibility(ScrollView.VISIBLE);
         blackPanel.setVisibility(LinearLayout.GONE);
         btnStart.setEnabled(true);

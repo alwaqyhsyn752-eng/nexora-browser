@@ -31,5 +31,6 @@
             android:exported="false"
             android:label="التعليمات"
             android:theme="@android:style/Theme.Material.NoActionBar" />
+            <service android:name=".KeepAliveService" android:foregroundServiceType="dataSync" android:exported="false" />
     </application>
 </manifest>
