@@ -424,6 +424,16 @@
                 android:background="@drawable/btn_green" />
 
             <Button
+                android:id="@+id/btnInstructions"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="10dp"
+                android:text="📖 تعليمات الاستخدام"
+                android:textColor="#FF00E5FF"
+                android:textSize="14sp"
+                android:background="@drawable/bg_input" />
+
+            <Button
                 android:id="@+id/btnOpenRouter"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"

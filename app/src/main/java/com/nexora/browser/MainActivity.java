@@ -29,6 +29,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        WelcomeHelper.showIfNeeded(this);
+        UpdateChecker.check(this);
         setContentView(R.layout.activity_main);
         clockText = findViewById(R.id.clockText);
         wireButtons();

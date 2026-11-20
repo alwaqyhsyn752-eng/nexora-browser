@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#FF0a0e27">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="NEXORA"
+        android:textColor="#FF00E5FF"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.15"
+        android:gravity="center"
+        android:shadowColor="#FF00E5FF"
+        android:shadowRadius="20" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="VOUCHER FINDER"
+        android:textColor="#FF8A2BE2"
+        android:textSize="12sp"
+        android:letterSpacing="0.4"
+        android:gravity="center"
+        android:paddingBottom="24dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🎉 مرحباً بك!"
+        android:textColor="#FF00E676"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="للحصول على آخر التحديثات والدعم الفني،\nانضم لقناتنا على التلجرام وتابعنا على يوتيوب"
+        android:textColor="#CCFFFFFF"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp"
+        android:layout_marginBottom="24dp" />
+
+    <Button
+        android:id="@+id/btnTelegram"
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:text="📢 انضم لقناة التلجرام"
+        android:textColor="#FF050510"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:background="@drawable/btn_green"
+        android:layout_marginBottom="10dp" />
+
+    <Button
+        android:id="@+id/btnYoutube"
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:text="🎥 شاهد الشرح على يوتيوب"
+        android:textColor="#FF050510"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:background="@drawable/btn_cyan"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/btnSkip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="تخطي والبدء الآن →"
+        android:textColor="#88FFFFFF"
+        android:textSize="13sp"
+        android:background="@android:color/transparent"
+        android:layout_gravity="center" />
+</LinearLayout>

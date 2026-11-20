@@ -27,5 +27,9 @@
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@style/Theme.Nexora"/>
+            <activity android:name=".InstructionsActivity"
+            android:exported="false"
+            android:label="التعليمات"
+            android:theme="@android:style/Theme.Material.NoActionBar" />
     </application>
 </manifest>

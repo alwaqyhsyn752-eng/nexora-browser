@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/bg_cyber">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="📖 تعليمات الاستخدام"
+                android:textColor="#FF00E5FF"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:paddingBottom="20dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🔴 الخطوة 1: قبل فتح التطبيق"
+                android:textColor="#FFFF5577"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:paddingTop="12dp"
+                android:paddingBottom="6dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="افتح متصفح الهاتف، واذهب إلى صفحة الشبكة. إذا كنت مسجلاً بكرت سابق، اضغط تسجيل الخروج أولاً. إذا لم تجد زر الخروج، أغلق الواي فاي وأعد تشغيله."
+                android:textColor="#EEFFFFFF"
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🟢 الخطوة 2: ضبط الشبكة"
+                android:textColor="#FF00E676"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:paddingTop="16dp"
+                android:paddingBottom="6dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="1) رابط الشبكة: اكتب رابط صفحة الدخول (مثل http://7.7.7.7) أو اضغط AUTO.\n2) اسم الشبكة: اكتب أي اسم (مثل بيتي). هذا لحفظ بياناتك بشكل منفصل."
+                android:textColor="#EEFFFFFF"
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🟡 الخطوة 3: بيانات الكرت"
+                android:textColor="#FFFFD700"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:paddingTop="16dp"
+                android:paddingBottom="6dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="• البداية: أول جزء ثابت في الكرت\n• الوسط: الجزء الثابت في المنتصف (إن وجد)\n• النهاية: آخر جزء ثابت في الكرت\n• عدد الأرقام المتغيرة: كم رقم تخمن (مثلاً 5)\n• الأرقام المسموحة: (اختياري) إذا أردت تخمين أرقام محددة، مثل 12345"
+                android:textColor="#EEFFFFFF"
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⚡ الخطوة 4: السرعة"
+                android:textColor="#FF00E5FF"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:paddingTop="16dp"
+                android:paddingBottom="6dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="• الانتظار: وقت بين المحاولات (0.5 ثانية جيد)\n• التوازي: عدد العمال (5 جيد، 10 أسرع لكن قد يعلق الشبكة)"
+                android:textColor="#EEFFFFFF"
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🚀 الخطوة 5: التشغيل"
+                android:textColor="#FF8A2BE2"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:paddingTop="16dp"
+                android:paddingBottom="6dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="اضغط ابدأ. سترى الرقم يتغير بسرعة. إذا ظهر الشريط الأخضر = وجد كرت. اختبره يدوياً في المتصفح قبل استخدامه."
+                android:textColor="#EEFFFFFF"
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="📁 الخطوة 6: الملفات الثلاثة"
+                android:textColor="#FFFF9800"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:paddingTop="16dp"
+                android:paddingBottom="6dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="✅ الناجحة: الكروت التي عملت\n⏰ المنتهية: الكروت المستخدمة\n❔ لا رد: الأرقام التي لم يرد الراوتر عليها"
+                android:textColor="#EEFFFFFF"
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⚠️ تنبيه مهم"
+                android:textColor="#FFFF5577"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:paddingTop="16dp"
+                android:paddingBottom="6dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="التطبيق للأغراض التعليمية فقط. استخدمه على شبكاتك المملوكة فقط. لا تستخدمه على شبكات الآخرين."
+                android:textColor="#EEFFFFFF"
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp"
+                android:paddingBottom="24dp" />
+        </LinearLayout>
+    </ScrollView>
+
+    <Button
+        android:id="@+id/btnBack"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_margin="16dp"
+        android:text="✔ فهمت، رجوع"
+        android:textColor="#FF050510"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:background="@drawable/btn_cyan" />
+</LinearLayout>

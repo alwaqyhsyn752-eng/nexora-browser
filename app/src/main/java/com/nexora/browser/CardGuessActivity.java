@@ -105,6 +105,9 @@ public class CardGuessActivity extends AppCompatActivity {
         android.widget.Button btnDetect = findViewById(R.id.btnDetect);
         if (btnDetect != null) btnDetect.setOnClickListener(v -> autoDetectNetwork());
         if (btnShowCurrent != null) btnShowCurrent.setOnClickListener(v -> showCurrentVoucher());
+        android.widget.Button btnInstr = findViewById(R.id.btnInstructions);
+        if (btnInstr != null) btnInstr.setOnClickListener(v -> 
+            startActivity(new android.content.Intent(this, InstructionsActivity.class)));
         android.widget.Button bvs = findViewById(R.id.btnViewSuccess);
         android.widget.Button bve = findViewById(R.id.btnViewExpired);
         android.widget.Button bvn = findViewById(R.id.btnViewNoResponse);
