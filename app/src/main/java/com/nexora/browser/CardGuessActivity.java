@@ -142,7 +142,6 @@ public class CardGuessActivity extends AppCompatActivity {
                 }
             }
         } catch (Exception e) {}
-        appendLog("🔢 الأرقام المسموحة: " + allowedDigits);
         
         try {
             finder = new MikrotikFinder(url, net,
