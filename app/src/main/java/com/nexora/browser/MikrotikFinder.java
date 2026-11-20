@@ -411,22 +411,20 @@ public class MikrotikFinder {
     }
 
     private String generateVoucher() {
-        // 🎯 1. الأرقام المخصصة أولاً
-        if (customSequences != null && customIndex < customSequences.size()) {
-            String original = customSequences.get(customIndex++);
-            String seq = original;
-            // لا نُعدّل الطول — إذا كان مختلفاً، نُظهر تحذير (في CardGuessActivity)
-            if (seq.length() != varDigits) {
-                Log.w("NEXORA", "الأرقام المخصصة '" + original + "' طولها " + seq.length() + " لكن varDigits = " + varDigits);
-                // نستخدم الرقم كما هو
+        // 🎯 1. الأرقام المخصصة فقط (إذا وُجدت)
+        if (customSequences != null && !customSequences.isEmpty()) {
+            if (customIndex < customSequences.size()) {
+                String seq = customSequences.get(customIndex++);
+                String v = buildVoucherWithVar(seq);
+                triedInSession.add(seq);
+                db.addAttemptWithStatus(v, "pending", null);
+                return v;
             }
-            String v = buildVoucherWithVar(seq);
-            triedInSession.add(seq);
-            db.addAttemptWithStatus(v, "pending", null);
-            return v;
+            // ⛔ نفدت الأرقام المخصصة — توقف (لا تخمين عشوائي)
+            return null;
         }
         
-        // 🧠 2. الأنماط الذكية
+        // 🧠 2. الأنماط الذكية (بدون أرقام مخصصة)
         while (smartIndex < smartPatterns.size()) {
             String seq = smartPatterns.get(smartIndex++);
             if (seq.length() != varDigits) continue;
@@ -438,7 +436,7 @@ public class MikrotikFinder {
             return v;
         }
         
-        // 🎲 3. عشوائي (الوضع الافتراضي)
+        // 🎲 3. عشوائي (بدون أرقام مخصصة)
         long max = (long) Math.pow(10, Math.min(varDigits, 12));
         int maxTries = varDigits >= 4 ? 3000 : 200;
         for (int i = 0; i < maxTries; i++) {
