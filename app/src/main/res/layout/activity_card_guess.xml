@@ -83,9 +83,8 @@
 
             <EditText android:id="@+id/etCustomSequences"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:hint="أرقام مخصصة (سطر لكل رقم) — اختياري"
-                android:inputType="textMultiLine" android:minLines="2"
-                android:gravity="top|start"
+                android:hint="الأرقام المسموحة (مثال: 12345 — يخمن من 1-5 فقط. اتركه فارغاً لكل الأرقام 0-9)"
+                android:inputType="number"
                 android:textColor="#FFFFFFFF" android:textColorHint="#88FFFFFF"
                 android:background="#2200E5FF" android:padding="10dp" android:layout_marginTop="8dp"/>
 
