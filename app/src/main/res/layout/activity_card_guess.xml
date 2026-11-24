@@ -424,6 +424,17 @@
                 android:background="@drawable/btn_green" />
 
             <Button
+                android:id="@+id/btnReadCookie"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="10dp"
+                android:text="🔍 قراءة الكرت المسجل (من الكوكي)"
+                android:textColor="#FF050510"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:background="@drawable/btn_green" />
+
+            <Button
                 android:id="@+id/btnInstructions"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"

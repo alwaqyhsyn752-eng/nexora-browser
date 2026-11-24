@@ -1,0 +1,11 @@
+{
+"logged_in": 			"yes",
+"ip": 		        	"10.0.5.47",
+"sps": 		        	"",
+"bytes_in": 			"26657",
+"bytes_out": 			"21698",
+"remain_bytes_total": 	"1775239530",
+"session_time_left":	"6h32m9s",
+"uptime":	        	"7s",
+"action":               "onStatusQuery"
+}

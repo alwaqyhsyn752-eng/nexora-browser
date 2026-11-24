@@ -1,0 +1,18 @@
+{
+"logged_in": 			"no",
+"link_login_only": 		"http://7.7.7.7/login",
+"link_logout":			"http://7.7.7.7/logout",
+"ip": 		        	"10.0.5.47",
+"bytes_in": 			"26657",
+"bytes_in_nice": 		"26.1 KiB",
+"bytes_out": 			"21698",
+"sps": 		        	"",
+"bytes_out_nice": 		"21.2 KiB",
+"remain_bytes_in": 		"1775261228",
+"remain_bytes_out": 	"1775266187",
+"packets_out": 			"137",
+"packets_in": 			"180",
+"session_time_left":	"6h32m9s",
+"uptime":	        	"7s",
+"action":               "onLoggedOut"
+}

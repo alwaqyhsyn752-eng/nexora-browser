@@ -1,0 +1,9 @@
+HTTP/1.1 302 Hotspot login required
+Cache-Control: no-cache
+Connection: Keep-Alive
+Content-Length: 135
+Content-Type: text/html
+Date: Tue, 24 Nov 2026 14:08:34 GMT
+Expires: 0
+Location: http://7.7.7.7/login
+
