@@ -43,6 +43,9 @@ public class CardGuessActivity extends AppCompatActivity {
         try {
             setContentView(R.layout.activity_card_guess);
             bind(); setupSeekbars(); wire(); loadPrefs();
+            WelcomeHelper.showIfNeeded(this);
+            UpdateChecker.check(this);
+            try { findViewById(android.R.id.content).startAnimation(android.view.animation.AnimationUtils.loadAnimation(this, R.anim.fade_in)); } catch (Exception e) {}
         } catch (Throwable t) {
             Toast.makeText(this, "CRASH: " + t, Toast.LENGTH_LONG).show();
             finish();
@@ -163,6 +166,7 @@ public class CardGuessActivity extends AppCompatActivity {
         foundDisplay.setTextColor(0xFFFFAA00);
         candidateList.clear();
         currentCardBig.setText("...");
+        try { currentCardBig.startAnimation(android.view.animation.AnimationUtils.loadAnimation(this, R.anim.pulse)); } catch (Exception e) {}
         statusLine.setText("المحاولات: 0");
         foundDisplay.setText("لم يُعثر على كرت بعد");
         btnStart.setEnabled(false);

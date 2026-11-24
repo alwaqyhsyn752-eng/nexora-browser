@@ -37,10 +37,14 @@ public class KeepAliveService extends Service {
             .setSmallIcon(android.R.drawable.ic_menu_search)
             .setOngoing(true)
             .build();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
-        } else {
-            startForeground(1, n);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+            } else {
+                startForeground(1, n);
+            }
+        } catch (Exception e) {
+            try { stopSelf(); } catch (Exception e2) {}
         }
         return START_STICKY;
     }

@@ -43,6 +43,7 @@ public class WelcomeHelper {
         v.findViewById(R.id.btnSkip).setOnClickListener(x -> dlg.dismiss());
 
         dlg.show();
+        try { v.startAnimation(android.view.animation.AnimationUtils.loadAnimation(context, R.anim.slide_up)); } catch (Exception e) {}
     }
 
     private static void checkMonthlyReminder(final Context context) {
