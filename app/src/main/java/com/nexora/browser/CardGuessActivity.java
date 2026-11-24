@@ -108,6 +108,9 @@ public class CardGuessActivity extends AppCompatActivity {
         android.widget.Button btnDetect = findViewById(R.id.btnDetect);
         if (btnDetect != null) btnDetect.setOnClickListener(v -> autoDetectNetwork());
         if (btnShowCurrent != null) btnShowCurrent.setOnClickListener(v -> showCurrentVoucher());
+        android.widget.Button btnCookie = findViewById(R.id.btnReadCookie);
+        if (btnCookie != null) btnCookie.setOnClickListener(v -> readCookieAndShow());
+
         android.widget.Button btnInstr = findViewById(R.id.btnInstructions);
         if (btnInstr != null) btnInstr.setOnClickListener(v -> 
             startActivity(new android.content.Intent(this, InstructionsActivity.class)));
@@ -283,6 +286,53 @@ public class CardGuessActivity extends AppCompatActivity {
             .show();
     }
 
+    private void readCookieAndShow() {
+        String url = val(etNetUrl);
+        if (url.isEmpty()) { toast("أدخل رابط الشبكة أولاً"); return; }
+        String base = url.replaceAll("/[^/]*$", "");
+        toast("جاري قراءة الكوكيز...");
+        CookieHelper.readCookies(this, base + "/", (username, stored, all) -> runOnUiThread(() -> {
+            StringBuilder sb = new StringBuilder();
+            if (username != null && !username.isEmpty()) {
+                sb.append("🎫 الكرت المسجل: ").append(username).append("\n\n");
+            } else {
+                sb.append("❌ لا يوجد كرت مسجل في الكوكي\n\n");
+            }
+            if (stored != null && !stored.isEmpty()) {
+                sb.append("📋 الكروت السابقة:\n");
+                // storedValues = ["5808962033","..."]
+                String clean = stored.replace("[", "").replace("]", "").replace("\"", "");
+                if (!clean.isEmpty()) {
+                    for (String s : clean.split(",")) {
+                        s = s.trim();
+                        if (!s.isEmpty()) sb.append("  • ").append(s).append("\n");
+                    }
+                }
+                sb.append("\n");
+            }
+            sb.append("🍪 كل الكوكيز:\n").append(all);
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("🎫 بيانات الكرت")
+                .setMessage(sb.toString())
+                .setPositiveButton("نسخ الكرت", (d, w) -> {
+                    if (username != null && !username.isEmpty()) {
+                        android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                        cm.setPrimaryClip(android.content.ClipData.newPlainText("voucher", username));
+                        toast("تم نسخ الكرت: " + username);
+                    } else {
+                        toast("لا يوجد كرت للنسخ");
+                    }
+                })
+                .setNeutralButton("نسخ الكل", (d, w) -> {
+                    android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("all", sb.toString()));
+                    toast("تم النسخ");
+                })
+                .setNegativeButton("إغلاق", null)
+                .show();
+        }));
+    }
+
     @Override protected void onDestroy() { if (finder != null) finder.stop(); super.onDestroy(); }
     private String val(EditText e) { return e.getText() == null ? "" : e.getText().toString().trim(); }
     private int parseInt(String s, int def) {
@@ -300,44 +350,59 @@ public class CardGuessActivity extends AppCompatActivity {
         toast("جاري اكتشاف بوابة الدخول...");
         new Thread(() -> {
             String detectedUrl = null;
+            String[] candidates = {"http://7.7.7.7", "http://1.1.1.1", "http://10.0.0.1",
+                                   "http://192.168.88.1", "http://192.168.0.1", "http://192.168.1.1"};
+            
+            // 1) جرّب captive portal أولاً (لو غير مسجل)
             try {
-                // طلب لموقع خارجي لاعتراض البوابة
-                java.net.URL url = new java.net.URL("http://neverssl.com");
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection)
+                    new java.net.URL("http://connectivitycheck.gstatic.com/generate_204").openConnection();
                 conn.setInstanceFollowRedirects(false);
-                conn.setConnectTimeout(5000);
-                conn.setReadTimeout(5000);
+                conn.setConnectTimeout(4000);
+                conn.setReadTimeout(4000);
                 int code = conn.getResponseCode();
-                
-                if (code == 302 || code == 301 || code == 511) {
+                if (code == 302 || code == 301) {
                     String loc = conn.getHeaderField("Location");
-                    if (loc != null && !loc.isEmpty()) detectedUrl = loc;
+                    if (loc != null && !loc.isEmpty()) {
+                        detectedUrl = loc.replaceAll("/login.*$", "").replaceAll("/\?.*$", "");
+                    }
                 }
+                conn.disconnect();
             } catch (Exception e) {}
 
-            // إذا لم يعترض الراوتر (لأنك متصل بالفعل)، استخدم IP البوابة
+            // 2) لو captive فشل (مسجل)، جرّب كل مرشح واختبر /login
             if (detectedUrl == null) {
-                try {
-                    android.net.wifi.WifiManager wm = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
-                    if (wm != null) {
-                        android.net.DhcpInfo dhcp = wm.getDhcpInfo();
-                        if (dhcp != null && dhcp.gateway != 0) {
-                            int ip = dhcp.gateway;
-                            String ipStr = String.format(java.util.Locale.US, "%d.%d.%d.%d", (ip & 0xff), (ip >> 8 & 0xff), (ip >> 16 & 0xff), (ip >> 24 & 0xff));
-                            detectedUrl = "http://" + ipStr + "/login"; // إضافة /login لصفحة الدخول
+                for (String base : candidates) {
+                    try {
+                        java.net.HttpURLConnection c2 = (java.net.HttpURLConnection)
+                            new java.net.URL(base + "/login").openConnection();
+                        c2.setConnectTimeout(2500);
+                        c2.setReadTimeout(2500);
+                        int code = c2.getResponseCode();
+                        if (code == 200) {
+                            java.io.InputStream is = c2.getInputStream();
+                            byte[] buf = new byte[8000];
+                            int n = is.read(buf);
+                            is.close();
+                            String body = new String(buf, 0, Math.max(0, n), "UTF-8");
+                            // اختبر: هل يحتوي على form حقيقي؟
+                            if (body.contains("<form") && (body.contains("username") || body.contains("password"))) {
+                                detectedUrl = base;
+                                break;
+                            }
                         }
-                    }
-                } catch (Exception e) {}
+                        c2.disconnect();
+                    } catch (Exception e) {}
+                }
             }
-            
+
+            // 3) خطة بديلة نهائية
+            if (detectedUrl == null) detectedUrl = "http://7.7.7.7";
+
             final String finalUrl = detectedUrl;
             runOnUiThread(() -> {
-                if (finalUrl != null) {
-                    etNetUrl.setText(finalUrl);
-                    toast("تم اكتشاف: " + finalUrl);
-                } else {
-                    toast("لم يتم اكتشاف البوابة. أدخل الرابط يدوياً");
-                }
+                etNetUrl.setText(finalUrl);
+                toast("تم اكتشاف: " + finalUrl);
             });
         }).start();
     }
