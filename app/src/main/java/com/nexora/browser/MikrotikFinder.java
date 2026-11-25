@@ -47,6 +47,7 @@ public class MikrotikFinder {
     private final String pwPrefix, pwSuffix;
     private final int pwDigits;
     private final java.util.concurrent.atomic.AtomicLong counter = new java.util.concurrent.atomic.AtomicLong(0);
+    private final java.util.concurrent.atomic.AtomicLong seqCounter = new java.util.concurrent.atomic.AtomicLong(0);
     private final java.util.concurrent.atomic.AtomicInteger recentErrors = new java.util.concurrent.atomic.AtomicInteger(0);
     private final java.util.List<String> candidates = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
     private final java.util.Map<String, String> candidateDetails = new java.util.concurrent.ConcurrentHashMap<>();
