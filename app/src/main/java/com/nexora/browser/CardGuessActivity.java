@@ -1,5 +1,7 @@
 package com.nexora.browser;
 
+import android.speech.tts.TextToSpeech;
+
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.DhcpInfo;
@@ -35,6 +37,9 @@ public class CardGuessActivity extends AppCompatActivity {
     private static final int NOTIF_ID = 3001;
     private static final String CHANNEL_ID = "nexora_guess";
     private MikrotikFinder finder;
+    private TextToSpeech tts;
+    private boolean ttsEnabled = false;
+    private int guessMode = 2;
     private final java.util.List<String> candidateList = new java.util.ArrayList<>();
     private GuessDatabase db;
 
@@ -43,6 +48,11 @@ public class CardGuessActivity extends AppCompatActivity {
         try {
             setContentView(R.layout.activity_card_guess);
             bind(); setupSeekbars(); wire(); loadPrefs();
+            tts = new TextToSpeech(this, status -> {
+                if (status == TextToSpeech.SUCCESS) {
+                    tts.setLanguage(new java.util.Locale("ar"));
+                }
+            });
             WelcomeHelper.showIfNeeded(this);
             UpdateChecker.check(this);
             try { findViewById(android.R.id.content).startAnimation(android.view.animation.AnimationUtils.loadAnimation(this, R.anim.fade_in)); } catch (Exception e) {}
@@ -108,6 +118,18 @@ public class CardGuessActivity extends AppCompatActivity {
         android.widget.Button btnDetect = findViewById(R.id.btnDetect);
         if (btnDetect != null) btnDetect.setOnClickListener(v -> autoDetectNetwork());
         if (btnShowCurrent != null) btnShowCurrent.setOnClickListener(v -> showCurrentVoucher());
+        android.widget.Button btnTts = findViewById(R.id.btnTts);
+        if (btnTts != null) btnTts.setOnClickListener(v -> {
+            ttsEnabled = !ttsEnabled;
+            btnTts.setText(ttsEnabled ? "🔊 نطق: مفعّل" : "🔇 نطق: معطّل");
+            if (ttsEnabled && tts != null) tts.speak("النطق مفعل", TextToSpeech.QUEUE_FLUSH, null, "v");
+        });
+        android.widget.Button btnMode = findViewById(R.id.btnMode);
+        if (btnMode != null) btnMode.setOnClickListener(v -> {
+            guessMode = (guessMode + 1) % 3;
+            String[] names = {"🎲 عشوائي", "📈 تسلسلي", "🔀 مختلط"};
+            btnMode.setText(names[guessMode]);
+        });
         android.widget.Button btnCookie = findViewById(R.id.btnReadCookie);
         if (btnCookie != null) btnCookie.setOnClickListener(v -> readCookieAndShow());
 
@@ -158,7 +180,7 @@ public class CardGuessActivity extends AppCompatActivity {
                     parseInt(val(etCardVarDigits), 1),
                     parseInt(val(etCardConverters), 100000),
                     waitMs, parallel, cbRelax.isChecked(), db,
-                    allowedDigits);
+                    allowedDigits, guessMode);
         } catch (Exception e) { toast("خطأ: " + e.getMessage()); return; }
 
         savePrefs();
@@ -333,7 +355,8 @@ public class CardGuessActivity extends AppCompatActivity {
         }));
     }
 
-    @Override protected void onDestroy() { if (finder != null) finder.stop(); super.onDestroy(); }
+    @Override protected void onDestroy() {
+        if (tts != null) { tts.stop(); tts.shutdown(); } { if (finder != null) finder.stop(); super.onDestroy(); }
     private String val(EditText e) { return e.getText() == null ? "" : e.getText().toString().trim(); }
     private int parseInt(String s, int def) {
         if (s == null) return def;

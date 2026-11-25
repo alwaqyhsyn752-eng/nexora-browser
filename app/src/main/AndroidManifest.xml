@@ -33,5 +33,13 @@
             android:label="التعليمات"
             android:theme="@android:style/Theme.Material.NoActionBar" />
             <service android:name=".KeepAliveService" android:foregroundServiceType="dataSync" android:exported="false" />
+            <activity android:name=".KeyActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

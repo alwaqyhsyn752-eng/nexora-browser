@@ -423,6 +423,36 @@
                 android:textSize="14sp"
                 android:background="@drawable/btn_green" />
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="10dp">
+
+                <Button
+                    android:id="@+id/btnTts"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:text="🔇 نطق: معطّل"
+                    android:textColor="#FFFFFFFF"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:background="@drawable/btn_purple" />
+
+                <Button
+                    android:id="@+id/btnMode"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:text="🔀 مختلط"
+                    android:textColor="#FF050510"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:background="@drawable/btn_cyan" />
+            </LinearLayout>
+
             <Button
                 android:id="@+id/btnReadCookie"
                 android:layout_width="match_parent"

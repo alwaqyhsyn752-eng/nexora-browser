@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp"
+    android:background="@drawable/bg_cyber">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="NEXORA"
+        android:textColor="#FF00E5FF"
+        android:textSize="40sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.2"
+        android:gravity="center"
+        android:shadowColor="#FF00E5FF"
+        android:shadowRadius="25" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="VOUCHER FINDER PRO"
+        android:textColor="#FF8A2BE2"
+        android:textSize="13sp"
+        android:letterSpacing="0.4"
+        android:gravity="center"
+        android:paddingBottom="40dp" />
+
+    <TextView
+        android:id="@+id/keyStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🔒 التطبيق مقفل"
+        android:textColor="#FFFFD700"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingBottom="12dp" />
+
+    <TextView
+        android:id="@+id/keyTimer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#CCFFFFFF"
+        android:textSize="15sp"
+        android:gravity="center"
+        android:paddingBottom="32dp" />
+
+    <EditText
+        android:id="@+id/etKey"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="أدخل مفتاح التنشيط"
+        android:inputType="text"
+        android:textColor="#FFFFFFFF"
+        android:textColorHint="#66FFFFFF"
+        android:textSize="14sp"
+        android:background="@drawable/bg_input"
+        android:padding="14dp"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/btnActivate"
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:text="🔓 تنشيط"
+        android:textColor="#FF050510"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:background="@drawable/btn_cyan"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btnContinue"
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:text="▶ متابعة"
+        android:textColor="#FF050510"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:background="@drawable/btn_green"
+        android:visibility="gone" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📢 احصل على المفتاح من قناتنا على التلجرام"
+        android:textColor="#88FFFFFF"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:layout_marginTop="24dp" />
+</LinearLayout>

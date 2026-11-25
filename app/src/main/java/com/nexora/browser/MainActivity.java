@@ -30,6 +30,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (!KeyManager.isActivated(this)) {
+            startActivity(new android.content.Intent(this, KeyActivity.class));
+            finish();
+            return;
+        }
+        KeyManager.checkExpirationNotification(this);
         WelcomeHelper.showIfNeeded(this);
         UpdateChecker.check(this);
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
