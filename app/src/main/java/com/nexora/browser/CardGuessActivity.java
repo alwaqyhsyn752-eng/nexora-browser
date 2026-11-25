@@ -350,10 +350,8 @@ public class CardGuessActivity extends AppCompatActivity {
         toast("جاري اكتشاف بوابة الدخول...");
         new Thread(() -> {
             String detectedUrl = null;
-            String[] candidates = {"http://7.7.7.7", "http://1.1.1.1", "http://10.0.0.1",
-                                   "http://192.168.88.1", "http://192.168.0.1", "http://192.168.1.1"};
             
-            // 1) جرّب captive portal أولاً (لو غير مسجل)
+            // 1) جرّب captive portal
             try {
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection)
                     new java.net.URL("http://connectivitycheck.gstatic.com/generate_204").openConnection();
@@ -369,25 +367,45 @@ public class CardGuessActivity extends AppCompatActivity {
                 }
                 conn.disconnect();
             } catch (Exception e) {}
-
-            // 2) لو captive فشل (مسجل)، جرّب كل مرشح واختبر /login
+            
+            // 2) جرّب روابط معروفة، واقرأها لترى إذا فيها form حقيقي
             if (detectedUrl == null) {
+                String[] candidates = {"http://t.net", "http://7.7.7.7",
+                                       "http://10.0.0.1", "http://192.168.88.1",
+                                       "http://192.168.0.1", "http://192.168.1.1",
+                                       "http://1.1.1.1"};
                 for (String base : candidates) {
                     try {
-                        java.net.HttpURLConnection c2 = (java.net.HttpURLConnection)
+                        // جرّب /login
+                        java.net.HttpURLConnection c1 = (java.net.HttpURLConnection)
                             new java.net.URL(base + "/login").openConnection();
-                        c2.setConnectTimeout(2500);
-                        c2.setReadTimeout(2500);
-                        int code = c2.getResponseCode();
+                        c1.setConnectTimeout(2500);
+                        c1.setReadTimeout(2500);
+                        int code = c1.getResponseCode();
                         if (code == 200) {
-                            java.io.InputStream is = c2.getInputStream();
                             byte[] buf = new byte[8000];
-                            int n = is.read(buf);
-                            is.close();
+                            int n = c1.getInputStream().read(buf);
                             String body = new String(buf, 0, Math.max(0, n), "UTF-8");
-                            // اختبر: هل يحتوي على form حقيقي؟
                             if (body.contains("<form") && (body.contains("username") || body.contains("password"))) {
                                 detectedUrl = base;
+                                c1.disconnect();
+                                break;
+                            }
+                        }
+                        c1.disconnect();
+                        
+                        // جرّب index.html
+                        java.net.HttpURLConnection c2 = (java.net.HttpURLConnection)
+                            new java.net.URL(base + "/index.html").openConnection();
+                        c2.setConnectTimeout(2500);
+                        c2.setReadTimeout(2500);
+                        if (c2.getResponseCode() == 200) {
+                            byte[] buf = new byte[8000];
+                            int n = c2.getInputStream().read(buf);
+                            String body = new String(buf, 0, Math.max(0, n), "UTF-8");
+                            if (body.contains("<form") && (body.contains("username") || body.contains("password"))) {
+                                detectedUrl = base;
+                                c2.disconnect();
                                 break;
                             }
                         }
@@ -395,10 +413,10 @@ public class CardGuessActivity extends AppCompatActivity {
                     } catch (Exception e) {}
                 }
             }
-
-            // 3) خطة بديلة نهائية
+            
+            // 3) خطة بديلة
             if (detectedUrl == null) detectedUrl = "http://7.7.7.7";
-
+            
             final String finalUrl = detectedUrl;
             runOnUiThread(() -> {
                 etNetUrl.setText(finalUrl);
