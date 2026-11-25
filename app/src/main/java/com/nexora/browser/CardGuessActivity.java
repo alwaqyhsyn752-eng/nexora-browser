@@ -390,82 +390,95 @@ public class CardGuessActivity extends AppCompatActivity {
     private void toast(String m) { Toast.makeText(this, m, Toast.LENGTH_SHORT).show(); }
 
     private void autoDetectNetwork() {
-        toast("جاري اكتشاف بوابة الدخول...");
-        new Thread(() -> {
-            String detectedUrl = null;
-            
-            // 1) جرّب captive portal
-            try {
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection)
-                    new java.net.URL("http://connectivitycheck.gstatic.com/generate_204").openConnection();
-                conn.setInstanceFollowRedirects(false);
-                conn.setConnectTimeout(4000);
-                conn.setReadTimeout(4000);
-                int code = conn.getResponseCode();
-                if (code == 302 || code == 301) {
-                    String loc = conn.getHeaderField("Location");
-                    if (loc != null && !loc.isEmpty()) {
-                        detectedUrl = loc.replaceAll("/login.*$", "");
-                    }
+        toast("جاري البحث...");
+        final java.util.LinkedHashSet<String> candidates = new java.util.LinkedHashSet<>();
+        String gw = detectGatewayModern();
+        if (gw != null) candidates.add(gw);
+        try {
+            android.net.wifi.WifiManager wm = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+            if (wm != null) {
+                android.net.DhcpInfo d = wm.getDhcpInfo();
+                if (d != null && d.gateway != 0) {
+                    int ip = d.gateway;
+                    String legacy = String.format("%d.%d.%d.%d", (ip & 0xff), (ip >> 8 & 0xff), (ip >> 16 & 0xff), (ip >> 24 & 0xff));
+                    if (!legacy.startsWith("0.")) candidates.add(legacy);
                 }
-                conn.disconnect();
-            } catch (Exception e) {}
-            
-            // 2) جرّب روابط معروفة، واقرأها لترى إذا فيها form حقيقي
-            if (detectedUrl == null) {
-                String[] candidates = {"http://t.net", "http://7.7.7.7",
-                                       "http://10.0.0.1", "http://192.168.88.1",
-                                       "http://192.168.0.1", "http://192.168.1.1",
-                                       "http://1.1.1.1"};
-                for (String base : candidates) {
-                    try {
-                        // جرّب /login
-                        java.net.HttpURLConnection c1 = (java.net.HttpURLConnection)
-                            new java.net.URL(base + "/login").openConnection();
-                        c1.setConnectTimeout(2500);
-                        c1.setReadTimeout(2500);
-                        int code = c1.getResponseCode();
-                        if (code == 200) {
-                            byte[] buf = new byte[8000];
-                            int n = c1.getInputStream().read(buf);
-                            String body = new String(buf, 0, Math.max(0, n), "UTF-8");
-                            if (body.contains("<form") && (body.contains("username") || body.contains("password"))) {
-                                detectedUrl = base;
-                                c1.disconnect();
-                                break;
-                            }
-                        }
-                        c1.disconnect();
-                        
-                        // جرّب index.html
-                        java.net.HttpURLConnection c2 = (java.net.HttpURLConnection)
-                            new java.net.URL(base + "/index.html").openConnection();
-                        c2.setConnectTimeout(2500);
-                        c2.setReadTimeout(2500);
-                        if (c2.getResponseCode() == 200) {
-                            byte[] buf = new byte[8000];
-                            int n = c2.getInputStream().read(buf);
-                            String body = new String(buf, 0, Math.max(0, n), "UTF-8");
-                            if (body.contains("<form") && (body.contains("username") || body.contains("password"))) {
-                                detectedUrl = base;
-                                c2.disconnect();
-                                break;
-                            }
-                        }
-                        c2.disconnect();
-                    } catch (Exception e) {}
+                int local = wm.getConnectionInfo().getIpAddress();
+                if (local != 0) {
+                    String localIp = String.format("%d.%d.%d.%d", (local & 0xff), (local >> 8 & 0xff), (local >> 16 & 0xff), (local >> 24 & 0xff));
+                    String[] parts = localIp.split("\\.");
+                    if (parts.length == 4) candidates.add(parts[0] + "." + parts[1] + "." + parts[2] + ".1");
                 }
             }
-            
-            // 3) خطة بديلة
-            if (detectedUrl == null) detectedUrl = "http://7.7.7.7";
-            
-            final String finalUrl = detectedUrl;
-            runOnUiThread(() -> {
-                etNetUrl.setText(finalUrl);
-                toast("تم اكتشاف: " + finalUrl);
-            });
+        } catch (Throwable t) {}
+        candidates.add("192.168.88.1");
+        candidates.add("192.168.1.1");
+        candidates.add("192.168.0.1");
+        candidates.add("192.168.8.1");
+        candidates.add("192.168.4.1");
+        candidates.add("10.0.0.1");
+        candidates.add("10.5.50.1");
+        candidates.add("7.7.7.7");
+        new Thread(() -> {
+            for (String ip : candidates) {
+                if (tryMikrotikStatus("http://" + ip)) {
+                    final String found = "http://" + ip;
+                    runOnUiThread(() -> {
+                        etNetUrl.setText(found);
+                        toast("✅ " + found);
+                    });
+                    return;
+                }
+            }
+            runOnUiThread(() -> toast("❌ لم يتم العثور على MikroTik"));
         }).start();
+    }
+
+    private String detectGatewayModern() {
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+            if (cm == null) return null;
+            android.net.Network net = cm.getActiveNetwork();
+            if (net == null) return null;
+            android.net.LinkProperties lp = cm.getLinkProperties(net);
+            if (lp == null) return null;
+            for (android.net.RouteInfo r : lp.getRoutes()) {
+                if (r.isDefaultRoute()) {
+                    java.net.InetAddress g = r.getGateway();
+                    if (g != null && !g.isAnyLocalAddress() && !g.isLoopbackAddress()) {
+                        String h = g.getHostAddress();
+                        if (h != null && h.matches("[0-9.]+")) return h;
+                    }
+                }
+            }
+        } catch (Throwable t) {}
+        return null;
+    }
+
+    private boolean tryMikrotikStatus(String baseUrl) {
+        java.net.HttpURLConnection conn = null;
+        try {
+            conn = (java.net.HttpURLConnection) new java.net.URL(baseUrl + "/status?var=callBack").openConnection();
+            conn.setConnectTimeout(1500);
+            conn.setReadTimeout(1500);
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+            conn.setRequestProperty("X-Requested-With", "XMLHttpRequest");
+            int code = conn.getResponseCode();
+            if (code < 200 || code >= 300) { conn.disconnect(); return false; }
+            StringBuilder sb = new StringBuilder();
+            java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream(), "UTF-8"));
+            String line;
+            while ((line = br.readLine()) != null) { sb.append(line); if (sb.length() > 5000) break; }
+            br.close();
+            String s = sb.toString().toLowerCase();
+            String q = String.valueOf((char)34);
+            return s.contains("logged_in") || s.contains(q + "ip" + q) || s.contains(q + "uptime" + q)
+                || s.contains("mikrotik") || s.contains("hotspot") || s.contains("session");
+        } catch (Exception e) {
+            return false;
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
     }
 
 
