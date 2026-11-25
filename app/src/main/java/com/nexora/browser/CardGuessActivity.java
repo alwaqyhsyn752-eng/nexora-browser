@@ -83,7 +83,7 @@ public class CardGuessActivity extends AppCompatActivity {
     private void setupSeekbars() {
         seekWait.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar sb, int p, boolean u) {
-                waitMs = Math.max(100, p * 100);
+                waitMs = Math.max(300, p * 100);
                 lblWait.setText("الانتظار: " + (waitMs / 1000f) + " ثانية");
             }
             @Override public void onStartTrackingTouch(SeekBar sb) {}
@@ -364,7 +364,7 @@ public class CardGuessActivity extends AppCompatActivity {
                 if (code == 302 || code == 301) {
                     String loc = conn.getHeaderField("Location");
                     if (loc != null && !loc.isEmpty()) {
-                        detectedUrl = loc.replaceAll("/login.*$", "").replaceAll("/\?.*$", "");
+                        detectedUrl = loc.replaceAll("/login.*$", "");
                     }
                 }
                 conn.disconnect();
