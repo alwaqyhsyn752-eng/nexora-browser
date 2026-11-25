@@ -267,6 +267,118 @@
                     android:padding="12dp" />
             </LinearLayout>
 
+            <!-- ======= قسم كلمة المرور ======= -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_glass_card"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp">
+
+                <CheckBox
+                    android:id="@+id/cbPwEnabled"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔑 الشبكة تحتاج كلمة مرور"
+                    android:textColor="#FF00E5FF"
+                    android:textStyle="bold"
+                    android:textSize="14sp" />
+
+                <LinearLayout
+                    android:id="@+id/layoutPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:layout_marginTop="10dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="بادئة كلمة المرور"
+                                android:textColor="#99FFFFFF"
+                                android:textSize="11sp"
+                                android:layout_marginBottom="4dp" />
+                            <EditText
+                                android:id="@+id/etPwPrefix"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="مثال: pw"
+                                android:inputType="text"
+                                android:textColor="#FFFFFFFF"
+                                android:textColorHint="#55FFFFFF"
+                                android:textSize="14sp"
+                                android:background="@drawable/bg_input"
+                                android:padding="12dp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_marginStart="8dp">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="لاحقة كلمة المرور"
+                                android:textColor="#99FFFFFF"
+                                android:textSize="11sp"
+                                android:layout_marginBottom="4dp" />
+                            <EditText
+                                android:id="@+id/etPwSuffix"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="مثال: x"
+                                android:inputType="text"
+                                android:textColor="#FFFFFFFF"
+                                android:textColorHint="#55FFFFFF"
+                                android:textSize="14sp"
+                                android:background="@drawable/bg_input"
+                                android:padding="12dp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_marginStart="8dp">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="عدد أرقام كلمة المرور"
+                                android:textColor="#99FFFFFF"
+                                android:textSize="11sp"
+                                android:layout_marginBottom="4dp" />
+                            <EditText
+                                android:id="@+id/etPwDigits"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="4"
+                                android:inputType="number"
+                                android:text="4"
+                                android:textColor="#FFFFFFFF"
+                                android:textColorHint="#55FFFFFF"
+                                android:textSize="14sp"
+                                android:background="@drawable/bg_input"
+                                android:padding="12dp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
             <!-- ======= قسم السرعة ======= -->
             <LinearLayout
                 android:layout_width="match_parent"

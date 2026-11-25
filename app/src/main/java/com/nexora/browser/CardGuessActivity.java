@@ -24,6 +24,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class CardGuessActivity extends AppCompatActivity {
     private EditText etNetUrl, etNetName, etCardStart, etCardMiddle, etCardEnd, etCardVarDigits, etCardConverters, etCustomSequences;
+    private EditText etPwPrefix, etPwSuffix, etPwDigits;
+    private CheckBox cbPwEnabled;
+    private LinearLayout layoutPassword;
     private SeekBar seekWait, seekParallel;
     private TextView lblWait, lblParallel;
     private CheckBox cbRelax;
@@ -71,6 +74,11 @@ public class CardGuessActivity extends AppCompatActivity {
         etCardVarDigits = findViewById(R.id.etCardVarDigits);
         etCardConverters = findViewById(R.id.etCardConverters);
         etCustomSequences = findViewById(R.id.etCustomSequences);
+        etPwPrefix = findViewById(R.id.etPwPrefix);
+        etPwSuffix = findViewById(R.id.etPwSuffix);
+        etPwDigits = findViewById(R.id.etPwDigits);
+        cbPwEnabled = findViewById(R.id.cbPwEnabled);
+        layoutPassword = findViewById(R.id.layoutPassword);
         seekWait = findViewById(R.id.seekWait);
         seekParallel = findViewById(R.id.seekParallel);
         lblWait = findViewById(R.id.lblWait);
@@ -110,6 +118,8 @@ public class CardGuessActivity extends AppCompatActivity {
     }
 
     private void wire() {
+        cbPwEnabled.setOnCheckedChangeListener((b, checked) ->
+            layoutPassword.setVisibility(checked ? LinearLayout.VISIBLE : LinearLayout.GONE));
         btnStart.setOnClickListener(v -> startGuessing());
         btnStop.setOnClickListener(v -> stopGuessing());
         btnStopBig.setOnClickListener(v -> stopGuessing());
@@ -180,7 +190,10 @@ public class CardGuessActivity extends AppCompatActivity {
                     parseInt(val(etCardVarDigits), 1),
                     parseInt(val(etCardConverters), 100000),
                     waitMs, parallel, cbRelax.isChecked(), db,
-                    allowedDigits, guessMode);
+                    allowedDigits, guessMode,
+                    cbPwEnabled.isChecked(),
+                    val(etPwPrefix), val(etPwSuffix),
+                    parseInt(val(etPwDigits), 4));
         } catch (Exception e) { toast("خطأ: " + e.getMessage()); return; }
 
         savePrefs();
@@ -360,6 +373,8 @@ public class CardGuessActivity extends AppCompatActivity {
         if (finder != null) finder.stop();
         super.onDestroy();
     }
+
+    
 
     
     private String val(EditText e) { return e.getText() == null ? "" : e.getText().toString().trim(); }

