@@ -356,7 +356,12 @@ public class CardGuessActivity extends AppCompatActivity {
     }
 
     @Override protected void onDestroy() {
-        if (tts != null) { tts.stop(); tts.shutdown(); } { if (finder != null) finder.stop(); super.onDestroy(); }
+        if (tts != null) { tts.stop(); tts.shutdown(); }
+        if (finder != null) finder.stop();
+        super.onDestroy();
+    }
+
+    
     private String val(EditText e) { return e.getText() == null ? "" : e.getText().toString().trim(); }
     private int parseInt(String s, int def) {
         if (s == null) return def;
